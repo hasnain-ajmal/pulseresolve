@@ -12,8 +12,10 @@ try {
   currentUser = null;
 }
 
-// Mode toggle: auto-detect live vs mock
-let useLiveApi = false;
+// The in-browser mock engine exists only for offline development (VITE_ALLOW_MOCK=true).
+// Production builds always talk to the real API: never silently fall back to fake data or accept any login.
+export const MOCK_ALLOWED = import.meta.env.VITE_ALLOW_MOCK === 'true';
+let useLiveApi = !MOCK_ALLOWED;
 let apiHealthChecked = false;
 
 export function getToken() {
@@ -45,6 +47,7 @@ export function isMockMode() {
 }
 
 export function setApiMode(live) {
+  if (!MOCK_ALLOWED) return;
   useLiveApi = live;
 }
 
@@ -52,7 +55,8 @@ export function setApiMode(live) {
 export async function checkBackendHealth() {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    // A free-tier host can take about a minute to wake up, so wait much longer than in dev.
+    const timeoutId = setTimeout(() => controller.abort(), MOCK_ALLOWED ? 2000 : 75000);
     const res = await fetch(`${BASE_URL}/health`, {
       signal: controller.signal
     });
@@ -63,10 +67,14 @@ export async function checkBackendHealth() {
       return { live: true, status: 'Connected to live backend' };
     }
   } catch (err) {
-    // Backend offline, fallback to mock seamlessly
+    // Backend not reachable
+  }
+  apiHealthChecked = true;
+  if (!MOCK_ALLOWED) {
+    useLiveApi = true;
+    return { live: true, status: 'Backend not responding yet. It may be waking up, please retry in a minute.' };
   }
   useLiveApi = false;
-  apiHealthChecked = true;
   return { live: false, status: 'Using local mock data engine' };
 }
 

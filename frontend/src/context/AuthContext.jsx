@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api, getToken, getCurrentUser, setAuth, clearAuth, isMockMode, setApiMode, checkBackendHealth } from '../api';
+import { api, getToken, getCurrentUser, setAuth, clearAuth, isMockMode, setApiMode, checkBackendHealth, MOCK_ALLOWED } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -41,6 +41,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const toggleApiMode = useCallback((live) => {
+    if (!MOCK_ALLOWED) return; // production always uses the real API
     setApiMode(live);
     setIsLiveApi(live);
     setHealthStatus(live ? 'Connected to live backend' : 'Using local mock data engine');
