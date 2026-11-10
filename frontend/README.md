@@ -1,16 +1,18 @@
-# React + Vite
+# PulseResolve frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite + Tailwind CSS + Recharts + Lucide. Talks to the FastAPI backend (contract: `../docs/frontend-spec.md`).
 
-Currently, two official plugins are available:
+## Run
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # production build in dist/
+```
+Set `VITE_API_URL` (see `.env.example`). Production builds always use the real API. A built-in mock engine exists for offline development only and is enabled by `VITE_ALLOW_MOCK=true`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Pages
+- Public: `/submit` (send a complaint, get an ID), `/track` (check status with the ID).
+- Staff (login): dashboard, incidents (suggestions, standalone complaints, deleted), incident detail, complaints with CSV import, correlation graph.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Notes
+Complaint and AI text is rendered as plain text only. Staff actions need a login token; deleting needs the `lead` role. A bell and banner show overdue or due-soon work.
