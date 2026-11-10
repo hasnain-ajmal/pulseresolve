@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Inbox, RefreshCw, UserPlus, CheckCircle2, Undo2 } from 'lucide-react';
+import { Inbox, RefreshCw, UserPlus, CheckCircle2, Undo2, Trash2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import { formatRelativeTime, truncateText } from '../../utils/formatters';
 import { CategoryBadge, SentimentBadge, PriorityBadge } from './Badge';
@@ -23,6 +24,10 @@ export function UnassignedComplaints({
   note = 'These did not match any incident. Assign them to a team and mark them resolved when done. They can still join an incident if related complaints arrive.',
 }) {
   const { success, error: toastError } = useToast();
+  const { user } = useAuth();
+  const isLead = user?.role === 'lead'; // only the lead (admin) can delete or restore; the server enforces it too
+  const [deletedItems, setDeletedItems] = useState([]);
+  const [showBin, setShowBin] = useState(false);
   const [open, setOpen] = useState([]);
   const [done, setDone] = useState([]);
   const [showDone, setShowDone] = useState(false);
@@ -37,10 +42,12 @@ export function UnassignedComplaints({
     setLoading(true);
     setError(null);
     try {
-      const [a, b] = await Promise.all([
+      const [a, b, d] = await Promise.all([
         api.getComplaints({ status: 'new', size: 100 }),
         api.getComplaints({ status: 'resolved', size: 100 }),
+        api.getComplaints({ deleted: true, size: 100 }),
       ]);
+      setDeletedItems((d.items || []).filter((c) => c.incident_id == null));
       const list = (a.items || []).filter((c) => c.incident_id == null);
       list.sort((x, y) => (URGENCY_RANK[y.urgency] || 0) - (URGENCY_RANK[x.urgency] || 0) || y.id - x.id);
       setOpen(list);
@@ -70,6 +77,9 @@ export function UnassignedComplaints({
       if (dialog.type === 'assign') {
         await api.assignComplaint(dialog.complaint.id, text.trim(), due ? Number(due) : undefined);
         success(`Complaint #${dialog.complaint.id} assigned to ${text.trim()}`);
+      } else if (dialog.type === 'delete') {
+        await api.deleteComplaint(dialog.complaint.id, text.trim());
+        success(`Complaint #${dialog.complaint.id} deleted. It is kept in the records and can be restored.`);
       } else {
         await api.resolveComplaint(dialog.complaint.id, text.trim());
         success(`Complaint #${dialog.complaint.id} marked resolved`);
@@ -80,6 +90,16 @@ export function UnassignedComplaints({
       toastError(err.message || 'Action failed');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const restore = async (c) => {
+    try {
+      await api.restoreComplaint(c.id);
+      success(`Complaint #${c.id} restored`);
+      await load();
+    } catch (err) {
+      toastError(err.message || 'Could not restore');
     }
   };
 
@@ -163,6 +183,11 @@ export function UnassignedComplaints({
                       <Button size="sm" variant="brand" icon={CheckCircle2} onClick={() => openDialog('resolve', c)}>
                         Resolve
                       </Button>
+                      {isLead && (
+                        <Button size="sm" variant="ghost" icon={Trash2} onClick={() => openDialog('delete', c)} title="Delete (kept in the records, restorable)">
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -191,9 +216,40 @@ export function UnassignedComplaints({
                       {c.resolved_at ? ` (${formatRelativeTime(c.resolved_at)})` : ''}
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" icon={Undo2} onClick={() => reopen(c)}>
-                    Reopen
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button size="sm" variant="ghost" icon={Undo2} onClick={() => reopen(c)}>
+                      Reopen
+                    </Button>
+                    {isLead && (
+                      <Button size="sm" variant="ghost" icon={Trash2} onClick={() => openDialog('delete', c)}>
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {!loading && !error && isLead && (
+        <div className="border-t border-slate-100 px-5 py-3">
+          <button onClick={() => setShowBin((v) => !v)} className="text-xs font-medium text-slate-600 hover:text-slate-900">
+            {showBin ? 'Hide' : 'Show'} deleted complaints ({deletedItems.length})
+          </button>
+          {showBin && (
+            <ul className="mt-3 space-y-2">
+              {deletedItems.length === 0 && <li className="text-xs text-slate-500">Nothing deleted.</li>}
+              {deletedItems.map((c) => (
+                <li key={c.id} className="flex items-start justify-between gap-3 text-xs border border-slate-100 rounded-lg p-3 bg-slate-50/50">
+                  <div className="min-w-0">
+                    <div className="text-slate-700">
+                      <span className="font-mono text-slate-400">#{c.id}</span> {truncateText(c.text, 120)}
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1">Deleted: {c.deleted_reason || 'no reason'}</div>
+                  </div>
+                  <Button size="sm" variant="ghost" icon={Undo2} onClick={() => restore(c)}>Restore</Button>
                 </li>
               ))}
             </ul>
@@ -204,11 +260,17 @@ export function UnassignedComplaints({
       <Modal
         isOpen={Boolean(dialog)}
         onClose={() => setDialog(null)}
-        title={dialog?.type === 'assign' ? `Assign complaint #${dialog?.complaint.id}` : `Resolve complaint #${dialog?.complaint.id}`}
+        title={
+          dialog?.type === 'assign' ? `Assign complaint #${dialog?.complaint.id}`
+            : dialog?.type === 'delete' ? `Delete complaint #${dialog?.complaint.id}`
+            : `Resolve complaint #${dialog?.complaint.id}`
+        }
         description={
           dialog?.type === 'assign'
             ? 'Choose or type the team that will handle this complaint.'
-            : 'Describe what was done. The complaint moves to the resolved list and stays in the history.'
+            : dialog?.type === 'delete'
+              ? 'It disappears from every list, chart and alert. The record is kept with your name and reason, and an admin can restore it.'
+              : 'Describe what was done. The complaint moves to the resolved list and stays in the history.'
         }
       >
         <form onSubmit={submitDialog} className="space-y-4">
@@ -221,14 +283,14 @@ export function UnassignedComplaints({
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="note-input">Resolution note</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="note-input">{dialog?.type === 'delete' ? 'Reason for deleting' : 'Resolution note'}</label>
               <textarea
                 id="note-input"
                 rows={3}
                 value={text}
                 maxLength={500}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="e.g. Replied to the customer and added the request to the roadmap"
+                placeholder={dialog?.type === 'delete' ? 'e.g. Positive review, nothing to act on' : 'e.g. Replied to the customer and added the request to the roadmap'}
                 className="w-full text-xs border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-600"
               />
             </div>
@@ -242,7 +304,7 @@ export function UnassignedComplaints({
               loading={busy}
               disabled={dialog?.type === 'assign' ? !text.trim() : text.trim().length < 3}
             >
-              {dialog?.type === 'assign' ? 'Assign' : 'Mark resolved'}
+              {dialog?.type === 'assign' ? 'Assign' : dialog?.type === 'delete' ? 'Delete complaint' : 'Mark resolved'}
             </Button>
           </div>
         </form>

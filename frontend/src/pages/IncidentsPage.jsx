@@ -18,6 +18,7 @@ import { StatusBadge, PriorityBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { LoadingState, EmptyState, ErrorState } from '../components/common/States';
 import { UnassignedComplaints } from '../components/common/UnassignedComplaints';
+import { DeletedIncidents } from '../components/common/DeletedIncidents';
 
 export function IncidentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -310,6 +311,9 @@ export function IncidentsPage() {
 
       {/* Whole picture: standalone complaints that belong to no incident */}
       <UnassignedComplaints />
+
+      {/* Admin only: deleted incidents can be restored */}
+      <DeletedIncidents onRestored={fetchIncidents} />
     </div>
   );
 }

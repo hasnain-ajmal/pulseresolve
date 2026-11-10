@@ -50,6 +50,12 @@ def get_current_user(
     return user
 
 
+def require_lead(user: User = Depends(get_current_user)) -> User:
+    if user.role != "lead":
+        raise ApiError(403, "forbidden", "Only a lead (admin) can delete or restore records.")
+    return user
+
+
 class RateLimiter:
     """In-memory sliding window. Single instance only (documented limit)."""
 

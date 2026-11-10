@@ -37,6 +37,7 @@ Market value: small and mid-size support teams (e-commerce, delivery, fintech, I
 | FR-16 | Priority score computed from complaint count, sentiment and urgency | Should | Planned |
 | FR-17 | Standalone complaints (in no incident) can be assigned to a team, resolved with a note and reopened; nothing is deleted | Must | Done |
 | FR-18 | Team deadlines by priority (critical gets the least time, custom deadline possible); staff see overdue and due-within-1-hour unresolved work as a bell, banner and countdown | Should | Done |
+| FR-19 | An admin can delete finished incidents and standalone complaints (e.g. positive reviews); deletes are soft (hidden, kept with who and why) and restorable; agents cannot delete | Should | Done |
 
 ## Non-functional requirements
 

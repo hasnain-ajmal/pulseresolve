@@ -127,13 +127,14 @@ def assign(db: Session, c: Complaint, actor: str = "system") -> str:
     from app.services import incidents as inc_svc  # local import avoids a cycle
 
     blocked = _blocked(db, c.id)
-    incidents = db.query(Incident).filter(Incident.status.in_(ACTIVE + ("resolved",))).all()
+    incidents = db.query(Incident).filter(Incident.status.in_(ACTIVE + ("resolved",)), Incident.deleted_at.is_(None)).all()
     members_by_inc: dict[int, list[Complaint]] = {}
     for inc in incidents:
         ms = (db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status.in_(("linked", "resolved")),
-                                         Complaint.id != c.id).all())
+                                         Complaint.id != c.id, Complaint.deleted_at.is_(None)).all())
         members_by_inc[inc.id] = [m for m in ms if m.id not in blocked]
-    pool = [p for p in db.query(Complaint).filter(Complaint.status == "new", Complaint.incident_id.is_(None), Complaint.id != c.id).all()
+    pool = [p for p in db.query(Complaint).filter(Complaint.status == "new", Complaint.incident_id.is_(None), Complaint.id != c.id,
+                                                       Complaint.deleted_at.is_(None)).all()
             if p.id not in blocked]
 
     flat = [m for ms in members_by_inc.values() for m in ms] + pool

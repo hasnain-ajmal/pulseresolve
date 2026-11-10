@@ -213,3 +213,9 @@ Complaints that belong to no incident (`incident_id` null, status `new`) are han
 - `POST /complaints/{id}/assign` also accepts `due_in_minutes` (default by urgency).
 - `IncidentSummary`, `IncidentDetail` and `Complaint` gain `due_at` (ISO UTC, nullable).
 - `GET /alerts` (staff): `{ items: [{ kind: "incident"|"complaint", id, title, priority, assigned_team, status, due_at, minutes_left, level: "overdue"|"due_soon" }], overdue, due_soon, window_minutes }`. Lists unresolved work that is overdue or due within 60 minutes, most urgent first. The panel shows a bell with the count, a banner, and a countdown chip.
+
+## Addendum: safe delete and restore (lead / admin only)
+- `POST /complaints/{id}/delete` `{ reason }` (3-300): standalone complaints in status `new` or `resolved` only. `POST /complaints/{id}/restore`.
+- `POST /incidents/{id}/delete` `{ reason }`: incidents in status `resolved` or `rejected` only; their complaints are deleted with them. `POST /incidents/{id}/restore` brings them back.
+- Deleted records are soft-deleted: hidden from every list, chart, alert and from grouping, but kept in the database with `deleted_at` and `deleted_reason`, plus an audit event (who and why). `GET /complaints?deleted=true` and `GET /incidents?deleted=true` list them.
+- Only role `lead` may delete or restore (403 for `agent`, 401 without a login). Grouped complaints cannot be deleted one by one (409).

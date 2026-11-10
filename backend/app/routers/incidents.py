@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.errors import ApiError
 from app.models import Complaint, Incident, IncidentEvidence, User
-from app.schemas import (ApproveIn, IncidentDetail, IncidentSummary, Paged, PatchIn, RejectIn, ReopenIn, ResolveIn)
-from app.security import get_current_user
+from app.schemas import (ApproveIn, DeleteIn, IncidentDetail, IncidentSummary, Paged, PatchIn, RejectIn, ReopenIn, ResolveIn)
+from app.security import get_current_user, require_lead
 from app.services import incidents as svc
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
@@ -21,8 +21,8 @@ def _get(db: Session, iid: int) -> Incident:
 
 @router.get("", response_model=Paged[IncidentSummary])
 def list_incidents(page: int = Query(1, ge=1, le=10000), size: int = Query(20, ge=1, le=100), status: str | None = None,
-                   priority: str | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    q = db.query(Incident)
+                   priority: str | None = None, deleted: bool = False, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    q = db.query(Incident).filter(Incident.deleted_at.isnot(None) if deleted else Incident.deleted_at.is_(None))
     if status:
         q = q.filter(Incident.status == status)
     if priority:
@@ -35,7 +35,7 @@ def list_incidents(page: int = Query(1, ge=1, le=10000), size: int = Query(20, g
 
 @router.get("/graph")
 def graph(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    incs = db.query(Incident).filter(Incident.status.in_(("suggested", "open", "investigating"))).all()
+    incs = db.query(Incident).filter(Incident.status.in_(("suggested", "open", "investigating")), Incident.deleted_at.is_(None)).all()
     nodes, edges = [], []
     for inc in incs:
         nodes.append({"id": f"i{inc.id}", "type": "incident", "label": inc.affected_service, "priority": inc.priority})
@@ -79,6 +79,20 @@ def patch(iid: int, body: PatchIn, db: Session = Depends(get_db), user: User = D
 def resolve(iid: int, body: ResolveIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     inc = _get(db, iid)
     svc.resolve(db, inc, user.username, body.resolution_note)
+    return svc.to_detail(db, inc)
+
+
+@router.post("/{iid}/delete", response_model=IncidentDetail)
+def delete_incident(iid: int, body: DeleteIn, db: Session = Depends(get_db), user: User = Depends(require_lead)):
+    inc = _get(db, iid)
+    svc.delete(db, inc, user.username, body.reason)
+    return svc.to_detail(db, inc)
+
+
+@router.post("/{iid}/restore", response_model=IncidentDetail)
+def restore_incident(iid: int, db: Session = Depends(get_db), user: User = Depends(require_lead)):
+    inc = _get(db, iid)
+    svc.restore(db, inc, user.username)
     return svc.to_detail(db, inc)
 
 

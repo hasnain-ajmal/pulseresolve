@@ -32,10 +32,16 @@ import { useToast } from '../context/ToastContext';
 import { UnassignedComplaints } from '../components/common/UnassignedComplaints';
 import { TeamSelect } from '../components/common/TeamSelect';
 import { DeadlineSelect, DueChip } from '../components/common/Deadlines';
+import { Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export function IncidentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isLead = user?.role === 'lead';
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
   const { success, error: toastError } = useToast();
 
   const [incident, setIncident] = useState(null);
@@ -103,6 +109,20 @@ export function IncidentDetailPage() {
   };
 
   // Action Handlers
+  const handleDelete = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      await api.deleteIncident(incident.id, deleteReason.trim());
+      success('Incident deleted. It is hidden everywhere but kept in the records and can be restored.');
+      navigate('/incidents');
+    } catch (err) {
+      toastError(err.message || 'Failed to delete incident.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleApprove = async (e) => {
     e.preventDefault();
     setActionLoading(true);
@@ -304,6 +324,17 @@ export function IncidentDetailPage() {
             className="text-xs shrink-0 self-end sm:self-center"
           >
             Reopen Incident
+          </Button>
+        </div>
+      )}
+
+      {isLead && (isResolved || isRejected) && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+          <p className="text-xs text-slate-600">
+            This incident is finished. An admin can delete it (and its complaints) to clean up the lists. It is hidden everywhere but stays in the records and can be restored.
+          </p>
+          <Button variant="danger" size="sm" icon={Trash2} onClick={() => { setDeleteReason(''); setIsDeleteModalOpen(true); }} className="shrink-0">
+            Delete incident
           </Button>
         </div>
       )}
@@ -951,6 +982,34 @@ export function IncidentDetailPage() {
             </Button>
             <Button type="submit" variant="danger" size="sm" loading={actionLoading}>
               Reopen Incident
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete incident"
+        description="It will be hidden from every list, chart and alert. The record is kept with your name and reason, and can be restored from the Incidents page."
+      >
+        <form onSubmit={handleDelete} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="delete-reason">Reason</label>
+            <textarea
+              id="delete-reason"
+              rows={3}
+              value={deleteReason}
+              maxLength={300}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="e.g. Finished and verified, clean up the list"
+              className="w-full text-xs border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-600"
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="secondary" size="sm" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="danger" size="sm" loading={actionLoading} disabled={deleteReason.trim().length < 3}>
+              Delete incident
             </Button>
           </div>
         </form>

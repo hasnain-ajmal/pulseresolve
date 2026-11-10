@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.errors import ApiError
 from app.models import Complaint, ComplaintEvent, User, utcnow
-from app.schemas import (AssignComplaintIn, ComplaintCreate, ComplaintOut, Paged, ReopenComplaintIn, ResolveComplaintIn)
-from app.security import get_current_user, rate_limit
+from app.schemas import (AssignComplaintIn, ComplaintCreate, ComplaintOut, DeleteIn, Paged, ReopenComplaintIn, ResolveComplaintIn)
+from app.security import get_current_user, rate_limit, require_lead
 from app.services import incidents as incidents_svc
 from app.services import intake
 
@@ -69,9 +69,9 @@ def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db), user
 @router.get("", response_model=Paged[ComplaintOut])
 def list_complaints(page: int = Query(1, ge=1, le=10000), size: int = Query(20, ge=1, le=100), status: str | None = None,
                     category: str | None = None, sentiment: str | None = None, incident_id: int | None = None,
-                    q: str | None = Query(None, max_length=100), db: Session = Depends(get_db),
+                    q: str | None = Query(None, max_length=100), deleted: bool = False, db: Session = Depends(get_db),
                     _: User = Depends(get_current_user)):
-    query = db.query(Complaint)
+    query = db.query(Complaint).filter(Complaint.deleted_at.isnot(None) if deleted else Complaint.deleted_at.is_(None))
     if status:
         query = query.filter(Complaint.status == status)
     if category:
@@ -133,6 +133,38 @@ def resolve_complaint(cid: int, body: ResolveComplaintIn, db: Session = Depends(
     except Exception:
         db.rollback()
         raise ApiError(500, "server_error", "Could not resolve the complaint. Nothing was changed.")
+    return c
+
+
+@router.post("/{cid}/delete", response_model=ComplaintOut)
+def delete_complaint(cid: int, body: DeleteIn, db: Session = Depends(get_db), user: User = Depends(require_lead)):
+    """Soft delete: hidden everywhere, kept in the database with who and why. Restorable. Lead (admin) only."""
+    c = _load(db, cid)
+    if c.deleted_at is not None:
+        raise ApiError(409, "invalid_transition", "This complaint is already deleted.")
+    _standalone(c, "delete")
+    if c.status not in ("new", "resolved"):
+        raise ApiError(409, "invalid_transition", f"Cannot delete a complaint that is {c.status}.")
+    try:
+        c.deleted_at, c.deleted_reason = utcnow(), body.reason
+        db.add(ComplaintEvent(complaint_id=c.id, action="deleted", actor=user.username, note=body.reason))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise ApiError(500, "server_error", "Could not delete the complaint. Nothing was changed.")
+    return c
+
+
+@router.post("/{cid}/restore", response_model=ComplaintOut)
+def restore_complaint(cid: int, db: Session = Depends(get_db), user: User = Depends(require_lead)):
+    c = _load(db, cid)
+    if c.deleted_at is None:
+        raise ApiError(409, "invalid_transition", "This complaint is not deleted.")
+    if c.incident_id is not None:
+        raise ApiError(409, "invalid_transition", f"Restore incident #{c.incident_id} instead; this complaint was deleted with it.")
+    c.deleted_at, c.deleted_reason = None, None
+    db.add(ComplaintEvent(complaint_id=c.id, action="restored", actor=user.username, note="Restored"))
+    db.commit()
     return c
 
 

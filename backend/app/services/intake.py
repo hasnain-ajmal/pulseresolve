@@ -31,7 +31,8 @@ def submit(db: Session, data: ComplaintCreate, actor: str = "system") -> Complai
     h = _hash(data.text)
     recent = utcnow() - timedelta(minutes=10)
     dup = (db.query(Complaint).filter(Complaint.text_hash == h, Complaint.customer_name == data.customer_name,
-                                      Complaint.created_at >= recent).first())
+                                      Complaint.created_at >= recent,
+                                      Complaint.deleted_at.is_(None)).first())
     if dup:  # idempotent: a double click or retry does not create a second complaint
         return dup
 

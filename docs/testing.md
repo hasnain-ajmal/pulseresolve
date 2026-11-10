@@ -20,10 +20,10 @@ python scripts/eval_grouping.py --ai     # needs GEMINI_API_KEY and free quota
 | Type | Total | Passed | Failed |
 |------|-------|--------|--------|
 | Unit | 2 | 2 | 0 |
-| Integration / API (HTTP client, database, fake Gemini) | 62 | 62 | 0 |
+| Integration / API (HTTP client, database, fake Gemini) | 70 | 70 | 0 |
 | End-to-end on the deployed system (`scripts/live_test.py`, real Gemini, 42 checks) | 42 | 40 | 2 (investigated and fixed, see D-07 and D-08) |
 
-Last full run: 64 passed (backend/tests).
+Last full run: 72 passed (backend/tests).
 
 ## Edge cases covered
 
@@ -50,6 +50,7 @@ Last full run: 64 passed (backend/tests).
 | EC-19 | Urdu script and Roman Urdu complaints | Accepted and analysed | test_unicode_and_roman_urdu_accepted, eval set | Pass |
 | EC-21 | Standalone complaint: assign, resolve, reopen; wrong states; grouped complaint; login required | Correct transitions, 409 for wrong state or grouped complaint, history logged, resolved ones do not join incidents | test_incidents.py (5 tests, standalone section) | Pass |
 | EC-22 | Deadlines: default by priority, custom minutes, alert window, overdue, resolved clears alert, priority change recalculates, standalone complaints, invalid input, login required | As described | test_sla.py (7 tests) | Pass |
+| EC-23 | Safe delete: standalone and finished incidents, restore, cascade, only lead may delete, grouped complaint refused, deleted items excluded from stats, alerts and grouping, record kept with audit event | As described | test_delete.py (8 tests) | Pass |
 | EC-20 | CSV: bad row, missing column, oversize file | Row errors reported, 422 for bad file | test_csv_import_handles_bad_rows | Pass |
 
 ## Measured metrics

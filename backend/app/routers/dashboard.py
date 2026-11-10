@@ -14,15 +14,15 @@ ACTIVE = ("suggested", "open", "investigating")
 
 @router.get("/stats")
 def stats(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    total = db.query(Complaint).count()
-    active = db.query(Incident).filter(Incident.status.in_(ACTIVE)).count()
-    high = db.query(Incident).filter(Incident.status.in_(ACTIVE), Incident.priority.in_(("high", "critical"))).count()
-    pending = db.query(Incident).filter(Incident.status == "suggested").count()
-    sent = dict(db.query(Complaint.sentiment, func.count()).group_by(Complaint.sentiment).all())
-    cats = db.query(Complaint.category, func.count()).group_by(Complaint.category).order_by(func.count().desc()).all()
-    days = db.query(func.date(Complaint.created_at), func.count()).group_by(func.date(Complaint.created_at)).order_by(func.date(Complaint.created_at)).all()
-    recent = db.query(Complaint).order_by(Complaint.id.desc()).limit(8).all()
-    act = db.query(Incident).filter(Incident.status.in_(ACTIVE)).order_by(Incident.updated_at.desc()).limit(5).all()
+    total = db.query(Complaint).filter(Complaint.deleted_at.is_(None)).count()
+    active = db.query(Incident).filter(Incident.status.in_(ACTIVE), Incident.deleted_at.is_(None)).count()
+    high = db.query(Incident).filter(Incident.status.in_(ACTIVE), Incident.priority.in_(("high", "critical")), Incident.deleted_at.is_(None)).count()
+    pending = db.query(Incident).filter(Incident.status == "suggested", Incident.deleted_at.is_(None)).count()
+    sent = dict(db.query(Complaint.sentiment, func.count()).filter(Complaint.deleted_at.is_(None)).group_by(Complaint.sentiment).all())
+    cats = db.query(Complaint.category, func.count()).filter(Complaint.deleted_at.is_(None)).group_by(Complaint.category).order_by(func.count().desc()).all()
+    days = db.query(func.date(Complaint.created_at), func.count()).filter(Complaint.deleted_at.is_(None)).group_by(func.date(Complaint.created_at)).order_by(func.date(Complaint.created_at)).all()
+    recent = db.query(Complaint).filter(Complaint.deleted_at.is_(None)).order_by(Complaint.id.desc()).limit(8).all()
+    act = db.query(Incident).filter(Incident.status.in_(ACTIVE), Incident.deleted_at.is_(None)).order_by(Incident.updated_at.desc()).limit(5).all()
     return {
         "total_complaints": total,
         "active_incidents": active,

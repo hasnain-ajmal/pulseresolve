@@ -250,6 +250,20 @@ export const api = {
     return request(`/complaints/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution_note }) });
   },
 
+  // Safe delete (lead only): hidden everywhere, kept in the database with who and why, restorable.
+  async deleteComplaint(id, reason) {
+    return request(`/complaints/${id}/delete`, { method: 'POST', body: JSON.stringify({ reason }) });
+  },
+  async restoreComplaint(id) {
+    return request(`/complaints/${id}/restore`, { method: 'POST', body: JSON.stringify({}) });
+  },
+  async deleteIncident(id, reason) {
+    return request(`/incidents/${id}/delete`, { method: 'POST', body: JSON.stringify({ reason }) });
+  },
+  async restoreIncident(id) {
+    return request(`/incidents/${id}/restore`, { method: 'POST', body: JSON.stringify({}) });
+  },
+
   async reopenComplaint(id, note = 'Reopened') {
     return request(`/complaints/${id}/reopen`, { method: 'POST', body: JSON.stringify({ note }) });
   },

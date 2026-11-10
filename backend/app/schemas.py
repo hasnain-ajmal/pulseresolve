@@ -64,6 +64,12 @@ class ComplaintOut(BaseModel):
     resolution_note: str | None = None
     resolved_at: UTCDatetime | None = None
     due_at: UTCDatetime | None = None
+    deleted_at: UTCDatetime | None = None
+    deleted_reason: str | None = None
+
+
+class DeleteIn(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
 
 
 class AssignComplaintIn(BaseModel):
@@ -102,6 +108,8 @@ class IncidentSummary(BaseModel):
     created_at: UTCDatetime
     updated_at: UTCDatetime
     due_at: UTCDatetime | None = None
+    deleted_at: UTCDatetime | None = None
+    deleted_reason: str | None = None
 
 
 class EvidenceOut(BaseModel):

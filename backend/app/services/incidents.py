@@ -19,8 +19,8 @@ _PRIO = ["low", "medium", "high", "critical"]
 
 # ---- helpers ----------------------------------------------------------------------
 def members(db: Session, inc_id: int) -> list[Complaint]:
-    return (db.query(Complaint).filter(Complaint.incident_id == inc_id, Complaint.status.in_(MEMBER_STATUSES))
-            .order_by(Complaint.id).all())
+    return (db.query(Complaint).filter(Complaint.incident_id == inc_id, Complaint.status.in_(MEMBER_STATUSES),
+                                       Complaint.deleted_at.is_(None)).order_by(Complaint.id).all())
 
 
 def compute_priority(ms: list[Complaint]) -> str:
@@ -243,12 +243,48 @@ def reopen(db: Session, inc: Incident, actor: str, note: str) -> None:
         raise ApiError(500, "server_error", "Could not reopen the incident. Nothing was changed.")
 
 
+def delete(db: Session, inc: Incident, actor: str, reason: str) -> None:
+    """Soft delete a finished incident and the complaints that belong to it. Nothing is removed from the database."""
+    if inc.deleted_at is not None:
+        raise ApiError(409, "invalid_transition", "This incident is already deleted.")
+    _need(inc, ("resolved", "rejected"), "delete")
+    try:
+        stamp = utcnow()
+        inc.deleted_at, inc.deleted_reason, inc.updated_at = stamp, reason, stamp
+        for c in db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.deleted_at.is_(None)).all():
+            c.deleted_at, c.deleted_reason = stamp, f"Deleted with incident #{inc.id}: {reason}"[:300]
+        _event(db, inc, inc.status, "deleted", actor, reason)
+        db.commit()
+    except Exception:
+        db.rollback()
+        log.exception("delete failed, rolled back")
+        raise ApiError(500, "server_error", "Could not delete the incident. Nothing was changed.")
+
+
+def restore(db: Session, inc: Incident, actor: str) -> None:
+    if inc.deleted_at is None:
+        raise ApiError(409, "invalid_transition", "This incident is not deleted.")
+    try:
+        stamp = inc.deleted_at
+        for c in db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.deleted_at == stamp).all():
+            c.deleted_at, c.deleted_reason = None, None
+        inc.deleted_at, inc.deleted_reason, inc.updated_at = None, None, utcnow()
+        _event(db, inc, "deleted", inc.status, actor, "Restored")
+        db.commit()
+    except Exception:
+        db.rollback()
+        log.exception("restore failed, rolled back")
+        raise ApiError(500, "server_error", "Could not restore the incident. Nothing was changed.")
+
+
 # ---- views ---------------------------------------------------------------------------------
 def to_summary(db: Session, inc: Incident) -> IncidentSummary:
-    n = db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status.in_(MEMBER_STATUSES)).count()
+    n = db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status.in_(MEMBER_STATUSES),
+                                   Complaint.deleted_at.is_(None)).count()
     return IncidentSummary(id=inc.id, title=inc.title, affected_service=inc.affected_service, status=inc.status,
                            priority=inc.priority, assigned_team=inc.assigned_team, complaint_count=n,
-                           created_at=inc.created_at, updated_at=inc.updated_at, due_at=inc.due_at)
+                           created_at=inc.created_at, updated_at=inc.updated_at, due_at=inc.due_at,
+                           deleted_at=inc.deleted_at, deleted_reason=inc.deleted_reason)
 
 
 def to_detail(db: Session, inc: Incident) -> IncidentDetail:
