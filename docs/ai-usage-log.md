@@ -28,6 +28,8 @@ Required by the event rules. Log every meaningful use of AI tools during the bui
 | 15:30 to 15:50 | Hasnain | Claude Code | Gemini fell back to the offline reader after a second key was added | Read the server log; found Gemini answers were rejected as too strict; made parsing tolerant and logged reasons | 8 new tests, live test complaint analysed by Gemini |
 | 16:00 to 16:20 | Hasnain | Claude Code | System guide, judge Q&A, measured NFR results, design update, submission file | Accepted after checking the numbers against real measurements | Re-ran measurements; read every figure against the code and tests |
 
+Times in this log are approximate (rounded from the working session), and the order of entries is accurate. "Hasnain" means work done in his Claude Code session on his instructions; the partner's frontend was built with his own AI tool.
+
 ## Reflection
 
 ### Where AI helped most
