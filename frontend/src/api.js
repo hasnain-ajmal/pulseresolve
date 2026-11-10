@@ -234,8 +234,16 @@ export const api = {
   },
 
   // Standalone complaints (not in any incident) are handled directly. Live API only.
-  async assignComplaint(id, assigned_team) {
-    return request(`/complaints/${id}/assign`, { method: 'POST', body: JSON.stringify({ assigned_team }) });
+  async assignComplaint(id, assigned_team, due_in_minutes) {
+    return request(`/complaints/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assigned_team, due_in_minutes: due_in_minutes || undefined }),
+    });
+  },
+
+  // Overdue and due-soon work (incidents and standalone complaints). Live API only.
+  async getAlerts() {
+    return request('/alerts');
   },
 
   async resolveComplaint(id, resolution_note) {
@@ -303,11 +311,11 @@ export const api = {
     }
   },
 
-  async approveIncident(id, { assigned_team, priority } = {}) {
+  async approveIncident(id, { assigned_team, priority, due_in_minutes } = {}) {
     if (useLiveApi) {
       return request(`/incidents/${id}/approve`, {
         method: 'POST',
-        body: JSON.stringify({ assigned_team, priority })
+        body: JSON.stringify({ assigned_team, priority, due_in_minutes })
       });
     } else {
       await new Promise(r => setTimeout(r, 350));

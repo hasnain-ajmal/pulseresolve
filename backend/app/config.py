@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     RATE_COMPLAINTS_PER_HOUR: int = 60
     RATE_LOGIN_PER_MIN: int = 10
 
+    # Team deadlines (SLA) by priority, in minutes, and the "due soon" alert window
+    SLA_CRITICAL_MIN: int = 120
+    SLA_HIGH_MIN: int = 480
+    SLA_MEDIUM_MIN: int = 1440
+    SLA_LOW_MIN: int = 4320
+    ALERT_WINDOW_MINUTES: int = 60
+
     TESTING: bool = False
 
     @property

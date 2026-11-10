@@ -1,9 +1,11 @@
 """Incident lifecycle: creation, attach, approve/reject, resolve (atomic), reopen, citation validation."""
 import logging
+from datetime import timedelta
 from itertools import combinations
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.errors import ApiError
 from app.models import (Complaint, Incident, IncidentEvent, IncidentEvidence, MembershipLog, PairBlock, utcnow)
 from app.schemas import (ComplaintOut, EvidenceOut, HistoryOut, HypothesisOut, IncidentDetail, IncidentSummary)
@@ -34,6 +36,17 @@ def compute_priority(ms: list[Complaint]) -> str:
     if score >= 1.8:
         return "medium"
     return "low"
+
+
+def sla_minutes(priority: str) -> int:
+    return {"critical": settings.SLA_CRITICAL_MIN, "high": settings.SLA_HIGH_MIN,
+            "medium": settings.SLA_MEDIUM_MIN, "low": settings.SLA_LOW_MIN}.get(priority, settings.SLA_MEDIUM_MIN)
+
+
+def set_deadline(inc: Incident, minutes: int | None = None) -> None:
+    """Start the team's clock now. Default length depends on priority (critical gets the least time)."""
+    inc.sla_started_at = utcnow()
+    inc.due_at = inc.sla_started_at + timedelta(minutes=minutes or sla_minutes(inc.priority))
 
 
 def _event(db: Session, inc: Incident, frm: str | None, to: str, actor: str, note: str = "") -> None:
@@ -142,7 +155,7 @@ def _need(inc: Incident, allowed: tuple[str, ...], action: str) -> None:
         raise ApiError(409, "invalid_transition", f"Cannot {action} an incident that is {inc.status}.")
 
 
-def approve(db: Session, inc: Incident, actor: str, team: str | None, priority: str | None) -> None:
+def approve(db: Session, inc: Incident, actor: str, team: str | None, priority: str | None, due_in_minutes: int | None = None) -> None:
     _need(inc, ("suggested",), "approve")
     frm = inc.status
     inc.status = "open"
@@ -150,6 +163,7 @@ def approve(db: Session, inc: Incident, actor: str, team: str | None, priority: 
         inc.assigned_team = team
     if priority:
         inc.priority = priority
+    set_deadline(inc, due_in_minutes)
     inc.updated_at = utcnow()
     _event(db, inc, frm, "open", actor, "Approved by staff")
     db.commit()
@@ -171,14 +185,19 @@ def reject(db: Session, inc: Incident, actor: str, reason: str) -> None:
     db.commit()
 
 
-def update(db: Session, inc: Incident, actor: str, priority: str | None, team: str | None, status: str | None) -> None:
+def update(db: Session, inc: Incident, actor: str, priority: str | None, team: str | None, status: str | None,
+           due_in_minutes: int | None = None) -> None:
     _need(inc, ("suggested", "open", "investigating"), "edit")
     if status == "investigating":
         _need(inc, ("open",), "mark investigating")
         inc.status = "investigating"
         _event(db, inc, "open", "investigating", actor, "Investigation started")
-    if priority:
+    if priority and priority != inc.priority:
         inc.priority = priority
+        if inc.sla_started_at and not due_in_minutes:  # same start, new allowance for the new priority
+            inc.due_at = inc.sla_started_at + timedelta(minutes=sla_minutes(priority))
+    if due_in_minutes and inc.status in ("open", "investigating"):
+        set_deadline(inc, due_in_minutes)
     if team is not None:
         inc.assigned_team = team or None
     inc.updated_at = utcnow()
@@ -213,6 +232,7 @@ def reopen(db: Session, inc: Incident, actor: str, note: str) -> None:
             db.add(MembershipLog(complaint_id=c.id, incident_id=inc.id, action="folded_in", actor=actor))
         inc.status = "open"
         inc.resolved_at = None
+        set_deadline(inc)
         inc.summary_stale = True
         inc.updated_at = utcnow()
         _event(db, inc, "resolved", "open", actor, note)
@@ -228,7 +248,7 @@ def to_summary(db: Session, inc: Incident) -> IncidentSummary:
     n = db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status.in_(MEMBER_STATUSES)).count()
     return IncidentSummary(id=inc.id, title=inc.title, affected_service=inc.affected_service, status=inc.status,
                            priority=inc.priority, assigned_team=inc.assigned_team, complaint_count=n,
-                           created_at=inc.created_at, updated_at=inc.updated_at)
+                           created_at=inc.created_at, updated_at=inc.updated_at, due_at=inc.due_at)
 
 
 def to_detail(db: Session, inc: Incident) -> IncidentDetail:

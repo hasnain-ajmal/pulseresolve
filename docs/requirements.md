@@ -36,6 +36,7 @@ Market value: small and mid-size support teams (e-commerce, delivery, fintech, I
 | FR-15 | Correlation graph (incidents and complaints with similarity edges) | Stretch | Planned |
 | FR-16 | Priority score computed from complaint count, sentiment and urgency | Should | Planned |
 | FR-17 | Standalone complaints (in no incident) can be assigned to a team, resolved with a note and reopened; nothing is deleted | Must | Done |
+| FR-18 | Team deadlines by priority (critical gets the least time, custom deadline possible); staff see overdue and due-within-1-hour unresolved work as a bell, banner and countdown | Should | Done |
 
 ## Non-functional requirements
 

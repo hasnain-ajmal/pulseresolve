@@ -57,7 +57,7 @@ def detail(iid: int, db: Session = Depends(get_db), _: User = Depends(get_curren
 def approve(iid: int, body: ApproveIn | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     inc = _get(db, iid)
     body = body or ApproveIn()
-    svc.approve(db, inc, user.username, body.assigned_team, body.priority)
+    svc.approve(db, inc, user.username, body.assigned_team, body.priority, body.due_in_minutes)
     return svc.to_detail(db, inc)
 
 
@@ -71,7 +71,7 @@ def reject(iid: int, body: RejectIn, db: Session = Depends(get_db), user: User =
 @router.patch("/{iid}", response_model=IncidentDetail)
 def patch(iid: int, body: PatchIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     inc = _get(db, iid)
-    svc.update(db, inc, user.username, body.priority, body.assigned_team, body.status)
+    svc.update(db, inc, user.username, body.priority, body.assigned_team, body.status, body.due_in_minutes)
     return svc.to_detail(db, inc)
 
 

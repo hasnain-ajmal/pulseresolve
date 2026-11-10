@@ -8,6 +8,7 @@ import { LoadingState, ErrorState } from './States';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { TeamSelect } from './TeamSelect';
+import { DeadlineSelect, DueChip } from './Deadlines';
 import { useToast } from '../../context/ToastContext';
 
 const URGENCY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -29,6 +30,7 @@ export function UnassignedComplaints({
   const [error, setError] = useState(null);
   const [dialog, setDialog] = useState(null); // { type: 'assign' | 'resolve', complaint }
   const [text, setText] = useState('');
+  const [due, setDue] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -57,6 +59,7 @@ export function UnassignedComplaints({
   const openDialog = (type, complaint) => {
     setDialog({ type, complaint });
     setText(type === 'assign' ? complaint.assigned_team || '' : '');
+    setDue('');
   };
 
   const submitDialog = async (e) => {
@@ -65,7 +68,7 @@ export function UnassignedComplaints({
     setBusy(true);
     try {
       if (dialog.type === 'assign') {
-        await api.assignComplaint(dialog.complaint.id, text.trim());
+        await api.assignComplaint(dialog.complaint.id, text.trim(), due ? Number(due) : undefined);
         success(`Complaint #${dialog.complaint.id} assigned to ${text.trim()}`);
       } else {
         await api.resolveComplaint(dialog.complaint.id, text.trim());
@@ -149,6 +152,7 @@ export function UnassignedComplaints({
                   <td className="py-3 px-4"><PriorityBadge priority={c.urgency} /></td>
                   <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
                     {c.assigned_team || <span className="text-slate-300 font-mono">unassigned</span>}
+                    {c.assigned_team && c.due_at && <div className="mt-1"><DueChip dueAt={c.due_at} /></div>}
                   </td>
                   <td className="py-3 px-4 text-slate-500 whitespace-nowrap text-[11px]">{formatRelativeTime(c.created_at)}</td>
                   <td className="py-3 px-4">
@@ -212,6 +216,8 @@ export function UnassignedComplaints({
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="assign-team">Team</label>
               <TeamSelect key={dialog.complaint.id} value={text} onChange={setText} id="assign-team" />
+              <label className="block text-xs font-semibold text-slate-700 mt-3 mb-1" htmlFor="assign-due">Deadline for the team</label>
+              <DeadlineSelect value={due} onChange={setDue} id="assign-due" />
             </div>
           ) : (
             <div>

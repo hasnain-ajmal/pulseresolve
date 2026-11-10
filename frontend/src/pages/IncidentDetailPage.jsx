@@ -31,6 +31,7 @@ import { LoadingState, EmptyState, ErrorState } from '../components/common/State
 import { useToast } from '../context/ToastContext';
 import { UnassignedComplaints } from '../components/common/UnassignedComplaints';
 import { TeamSelect } from '../components/common/TeamSelect';
+import { DeadlineSelect, DueChip } from '../components/common/Deadlines';
 
 export function IncidentDetailPage() {
   const { id } = useParams();
@@ -48,6 +49,7 @@ export function IncidentDetailPage() {
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [approveTeam, setApproveTeam] = useState('');
   const [approvePriority, setApprovePriority] = useState('');
+  const [approveDue, setApproveDue] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -107,7 +109,8 @@ export function IncidentDetailPage() {
     try {
       const updated = await api.approveIncident(incident.id, {
         assigned_team: approveTeam.trim() || undefined,
-        priority: approvePriority || undefined
+        priority: approvePriority || undefined,
+        due_in_minutes: approveDue ? Number(approveDue) : undefined
       });
       setIncident(updated);
       setIsApproveModalOpen(false);
@@ -410,6 +413,16 @@ export function IncidentDetailPage() {
             <span className="font-medium text-slate-800">
               {incident.assigned_team || 'Unassigned'}
             </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block text-[11px]">Team deadline</span>
+            {incident.due_at && ['open', 'investigating'].includes(incident.status) ? (
+              <DueChip dueAt={incident.due_at} />
+            ) : (
+              <span className="font-medium text-slate-400">
+                {incident.status === 'resolved' ? 'Completed' : 'Starts when approved'}
+              </span>
+            )}
           </div>
           <div>
             <span className="text-slate-400 block text-[11px]">Linked Complaints</span>
@@ -789,6 +802,16 @@ export function IncidentDetailPage() {
               Assign to Team <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <TeamSelect value={approveTeam} onChange={setApproveTeam} optional id="approve-team" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="approve-due">
+              Deadline for the team
+            </label>
+            <DeadlineSelect value={approveDue} onChange={setApproveDue} id="approve-due" />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Admins get an alert in the bell and a banner when it is overdue or due within 1 hour and still unresolved.
+            </p>
           </div>
 
           <div>

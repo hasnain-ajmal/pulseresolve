@@ -63,10 +63,12 @@ class ComplaintOut(BaseModel):
     assigned_team: str | None = None
     resolution_note: str | None = None
     resolved_at: UTCDatetime | None = None
+    due_at: UTCDatetime | None = None
 
 
 class AssignComplaintIn(BaseModel):
     assigned_team: str = Field(min_length=1, max_length=80)
+    due_in_minutes: int | None = Field(default=None, ge=1, le=43200)
 
     @field_validator("assigned_team", mode="before")
     @classmethod
@@ -99,6 +101,7 @@ class IncidentSummary(BaseModel):
     complaint_count: int
     created_at: UTCDatetime
     updated_at: UTCDatetime
+    due_at: UTCDatetime | None = None
 
 
 class EvidenceOut(BaseModel):
@@ -152,6 +155,7 @@ class LoginOut(BaseModel):
 class ApproveIn(BaseModel):
     assigned_team: str | None = Field(default=None, max_length=80)
     priority: Urgency | None = None
+    due_in_minutes: int | None = Field(default=None, ge=1, le=43200)
 
 
 class RejectIn(BaseModel):
@@ -162,6 +166,7 @@ class PatchIn(BaseModel):
     priority: Urgency | None = None
     assigned_team: str | None = Field(default=None, max_length=80)
     status: Literal["investigating"] | None = None
+    due_in_minutes: int | None = Field(default=None, ge=1, le=43200)
 
 
 class ResolveIn(BaseModel):

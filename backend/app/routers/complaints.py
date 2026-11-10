@@ -1,5 +1,6 @@
 import csv
 import io
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from pydantic import ValidationError
@@ -11,6 +12,7 @@ from app.errors import ApiError
 from app.models import Complaint, ComplaintEvent, User, utcnow
 from app.schemas import (AssignComplaintIn, ComplaintCreate, ComplaintOut, Paged, ReopenComplaintIn, ResolveComplaintIn)
 from app.security import get_current_user, rate_limit
+from app.services import incidents as incidents_svc
 from app.services import intake
 
 router = APIRouter(prefix="/complaints", tags=["complaints"])
@@ -112,6 +114,7 @@ def assign_complaint(cid: int, body: AssignComplaintIn, db: Session = Depends(ge
     if c.status != "new":
         raise ApiError(409, "invalid_transition", f"Cannot assign a complaint that is {c.status}.")
     c.assigned_team = body.assigned_team
+    c.due_at = utcnow() + timedelta(minutes=body.due_in_minutes or incidents_svc.sla_minutes(c.urgency))
     db.add(ComplaintEvent(complaint_id=c.id, action="assigned", actor=user.username, note=body.assigned_team))
     db.commit()
     return c

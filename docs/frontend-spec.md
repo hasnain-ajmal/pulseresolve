@@ -207,3 +207,9 @@ Backend seeds about 30 synthetic complaints and one staff user on startup. Staff
 
 ## Addendum: standalone complaints
 Complaints that belong to no incident (`incident_id` null, status `new`) are handled directly: assign to a team, resolve with a note, reopen. Grouped complaints return 409 and must be handled through their incident. The three new fields on `Complaint` (`assigned_team`, `resolution_note`, `resolved_at`) are null until used. Resolved standalone complaints are never deleted and never join new incidents.
+
+## Addendum: team deadlines and alerts
+- `POST /incidents/{id}/approve` and `PATCH /incidents/{id}` accept optional `due_in_minutes` (1 to 43200). Approving starts the team's clock; the default allowance depends on priority (critical 120 min, high 480, medium 1440, low 4320). Changing the priority recalculates the deadline from the same start. Reopening restarts it.
+- `POST /complaints/{id}/assign` also accepts `due_in_minutes` (default by urgency).
+- `IncidentSummary`, `IncidentDetail` and `Complaint` gain `due_at` (ISO UTC, nullable).
+- `GET /alerts` (staff): `{ items: [{ kind: "incident"|"complaint", id, title, priority, assigned_team, status, due_at, minutes_left, level: "overdue"|"due_soon" }], overdue, due_soon, window_minutes }`. Lists unresolved work that is overdue or due within 60 minutes, most urgent first. The panel shows a bell with the count, a banner, and a countdown chip.

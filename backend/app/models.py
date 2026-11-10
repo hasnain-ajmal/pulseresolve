@@ -41,6 +41,7 @@ class Complaint(Base):
     assigned_team: Mapped[str | None] = mapped_column(String(80), nullable=True)
     resolution_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class ComplaintEvent(Base):
@@ -72,6 +73,8 @@ class Incident(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sla_started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class IncidentEvidence(Base):

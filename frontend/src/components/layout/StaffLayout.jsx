@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { AlertsBell, AlertsBanner } from '../common/Deadlines';
 
 export function StaffLayout() {
   const { user, logout, isLiveApi, healthStatus, toggleApiMode } = useAuth();
@@ -189,7 +190,9 @@ export function StaffLayout() {
         </header>
 
         {/* Content Outlet */}
+        <AlertsBell />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <AlertsBanner />
           <Outlet />
         </main>
       </div>

@@ -8,7 +8,7 @@ from app import models  # noqa: F401  (register tables)
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.errors import install_handlers
-from app.routers import auth, complaints, dashboard, incidents
+from app.routers import alerts, auth, complaints, dashboard, incidents
 from app.seed import seed_demo_complaints, seed_users
 
 logging.basicConfig(level=logging.INFO)
@@ -38,7 +38,7 @@ app.add_middleware(
 )
 install_handlers(app)
 
-for r in (auth.router, complaints.router, incidents.router, dashboard.router):
+for r in (auth.router, complaints.router, incidents.router, dashboard.router, alerts.router):
     app.include_router(r, prefix="/api")
 
 
