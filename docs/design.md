@@ -9,7 +9,7 @@ flowchart LR
   subgraph API[FastAPI backend]
     R[Routers] --> SV[Services]
     SV --> AI[ai.py: Gemini REST + fallback]
-    SV --> EM[embeddings.py]
+    SV --> EM[embedding calls inside ai.py]
     SV --> GR[grouping.py]
     SV --> IN[incidents.py]
     SV --> DB[(SQLite via SQLAlchemy)]
@@ -29,7 +29,8 @@ Frontend: React + Vite + Tailwind + Recharts on Vercel. Backend: FastAPI on Rend
 | Routers (`auth`, `complaints`, `incidents`, `dashboard`) | HTTP only: validation, auth, status codes | FastAPI, Pydantic v2 |
 | `services/ai.py` | Gemini calls with JSON schema output, timeout, retry with backoff, circuit breaker, validation | httpx, Pydantic |
 | `services/fallback.py` | Deterministic offline analysis (keyword and lexicon), templated summaries | Python, scikit-learn TF-IDF |
-| `services/embeddings.py` | Embeddings via Gemini embedding API (768 dims), cache by text hash, TF-IDF fallback vectors | httpx, numpy |
+| `services/intake.py` | Submit pipeline: analyse (AI or fallback), embed, store, run the grouping rule, idempotent on double submit | SQLAlchemy |
+| `routers/track.py`, `routers/alerts.py` | Public status lookup (minimal fields) and overdue / due-soon alerts | FastAPI |
 | `services/grouping.py` | The stable grouping rule (below) | numpy, scikit-learn cosine |
 | `services/incidents.py` | Incident lifecycle, atomic resolve, history, citation validation | SQLAlchemy |
 | `security.py` | bcrypt hashing, JWT (HS256), role dependency, in-memory rate limiter | bcrypt, PyJWT |
@@ -40,8 +41,8 @@ Frontend: React + Vite + Tailwind + Recharts on Vercel. Backend: FastAPI on Rend
 | Table | Key columns |
 |-------|-------------|
 | `users` | id, username (unique), password_hash, role |
-| `complaints` | id, customer_name, customer_contact, text, text_hash, category, sentiment, urgency, symptoms (JSON), affected_service, analysis_source, embedding (JSON), status, incident_id (FK, nullable), created_at |
-| `incidents` | id, title, affected_service, status, priority, assigned_team, summary, summary_stale, shared_symptoms (JSON), hypotheses (JSON), suggested_actions (JSON), created_at, updated_at, resolved_at |
+| `complaints` | id, customer_name, customer_contact, text, text_hash, category, sentiment, urgency, symptoms (JSON), affected_service, language, analysis_source, embedding (JSON), status, incident_id (FK, nullable), created_at, assigned_team, due_at, resolution_note, customer_message, resolved_at, multi_issue, problem_count, deleted_at, deleted_reason |
+| `incidents` | id, title, affected_service, status, priority, assigned_team, summary, summary_stale, shared_symptoms (JSON), hypotheses (JSON), suggested_actions (JSON), citations_stripped, created_at, updated_at, resolved_at, sla_started_at, due_at, deleted_at, deleted_reason |
 | `incident_evidence` | id, incident_id, complaint_a, complaint_b, similarity, reason |
 | `incident_events` | id, incident_id, from_status, to_status, actor, note, at (append-only status history) |
 | `complaint_events` | id, complaint_id, action (assigned, resolved, reopened), actor, note, at (append-only history for standalone complaints) |
@@ -118,3 +119,25 @@ Synthetic customer names and contact strings only. No real personal data. Passwo
 ### Known limits
 
 In-memory rate limiting resets on restart. SQLite on a free host can lose data on restart, so seed data is recreated at startup. Similarity thresholds are tuned on a small synthetic set. Free-tier AI quota can degrade the app to fallback mode.
+
+## Additions made during the build day (all implemented and tested)
+
+| Feature | How it works | Why |
+|---------|--------------|-----|
+| Standalone complaints | A complaint in no incident can be assigned to a team (with a deadline), resolved with an internal note and a customer message, and reopened. Every action is written to `complaint_events`. | A one-off or single complaint still needs an owner and a closing |
+| Team deadlines and alerts | Approving starts a clock. Default allowance by priority: critical 2 h, high 8 h, medium 24 h, low 3 days, or a chosen custom time. `GET /api/alerts` lists unresolved work that is overdue or due within 60 minutes; the staff UI shows a bell, a banner and a countdown. Priority changes recalculate the deadline from the same start. | Critical work should get the least time and nothing should silently expire |
+| Safe delete and restore | Lead only. Standalone complaints (new or resolved) and finished incidents (resolved or rejected) get `deleted_at` and a reason. They disappear from lists, statistics, alerts and the grouping, but stay in the database and can be restored. Actions on a deleted record return 409 until restored. | Clean-up without losing records |
+| Public status page | `GET /api/track/{id}` returns only stage, dates and the team's closing message. Resolving requires a message for the customer (a default is used if none is sent). Rate limited to 30 per minute per connection. | Customers can follow their complaint; no personal data is exposed |
+| Multi-problem reports | The analysis counts distinct problems (Gemini or the offline reader). Two or more means `multi_issue`: one ID, never grouped, never a candidate, handled individually by staff. The detector counts only specific problem types, so single-problem texts are not flagged. | One mixed report must not distort a group |
+| Concurrency and integrity | Status changes use an atomic compare-and-set (`UPDATE ... WHERE status IN (...)`), so of two simultaneous clicks exactly one wins and the other gets 409. Grouping runs under a process-wide lock, so simultaneous submissions cannot create duplicate incidents. SQLite uses WAL mode and a 30 s busy timeout. IDs too large for the database return 422, not 500. | Verified with simultaneous requests on a real database file |
+| Tolerant AI parsing and rotation | Gemini output is trimmed and clamped instead of rejected over a long string; code fences and hidden-reasoning parts are ignored; unknown mood or urgency words become neutral or medium. Calls rotate across several models and keys, remembering exhausted ones. Invalid output is logged with its reason. | Real model answers are messier than a perfect JSON object, and free quotas are small |
+| Roles | `lead` (admin) can delete and restore; `agent` cannot. The role is read from the database on every request, never trusted from the token. | Least privilege for the most dangerous action |
+
+Decisions behind these additions:
+
+| Decision | Options considered | Chosen | Why | Tradeoff accepted |
+|----------|--------------------|--------|-----|-------------------|
+| Delete | Hard delete, soft delete | Soft delete (restorable, audited) | Records must not be lost by accident | The database keeps hidden rows |
+| Public status lookup | ID only, ID plus secret code | ID only, minimal fields | Simple for customers, requested behaviour | Short numeric IDs can be guessed; only status and the team's message are exposed. A secret code is the next step |
+| Multi-problem reports | Split into sub-complaints, keep standalone | Keep standalone, never group | Lowest risk, no distortion of groups | Staff handle the mixed report by hand; splitting is future work |
+| Two simultaneous status changes | Application check, atomic compare-and-set | Compare-and-set in the database | A check-then-update can let both succeed | Slightly more code |

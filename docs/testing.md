@@ -20,7 +20,7 @@ python scripts/eval_grouping.py --ai     # needs GEMINI_API_KEY and free quota
 | Type | Total | Passed | Failed |
 |------|-------|--------|--------|
 | Unit | 2 | 2 | 0 |
-| Integration / API (HTTP client, database, fake Gemini) | 139 | 139 | 0 |
+| Integration / API (HTTP client, database, fake Gemini) | 147 | 147 | 0 |
 | End-to-end on the deployed system (`scripts/live_test.py`, real Gemini, 42 checks) | 42 | 40 | 2 (investigated and fixed, see D-07 and D-08) |
 
 Last full run: 149 passed (backend/tests).
