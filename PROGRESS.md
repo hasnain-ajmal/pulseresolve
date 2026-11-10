@@ -30,9 +30,11 @@ Repo: https://github.com/hasnain-ajmal/pulseresolve (fork of the organizers' tem
 - [x] Pushed to GitHub (commits e1926e5 and earlier)
 - [x] render.yaml and README written
 - [x] Backend LIVE on Render: https://pulseresolve-api.onrender.com (blueprint render.yaml; service srv-dbpc3kgn74is73dhigq0; GEMINI_API_KEY set in Render env by Hasnain). Live smoke test passed: login, seeded 16 complaints/3 incidents, AI analysis, new incident formed from 3 live complaints (~4 s per submit). CORS_ORIGINS is still http://localhost:5173: update it on Render to the Vercel URL
-- [ ] Frontend (Sohail) integration against the live API, deploy on Vercel, set CORS_ORIGINS on Render
+- [x] Frontend (Sohail) merged, mock fallback disabled in production, deployed on Vercel https://pulseresolve.vercel.app (project pulseresolve, root frontend), CORS_ORIGINS on Render = that URL, SPA rewrite in frontend/vercel.json. Sohail is a collaborator (sohailwazir2004)
 - [x] docs/testing.md, docs/ai-usage-log.md written (update end-to-end results and final times at the end); [ ] frontend URL in README
-- [ ] Final secret scan, SUBMISSION.md, final commit hash before 3:00 PM
+- [x] Secret scan clean (13:15). SUBMISSION.md ticked except README quick-start test on a fresh device and the final commit hash
+- [ ] Hasnain: log in on the live site and click through staff pages; submit hash and live URL in the organizers' form before 3:00 PM
+Live test: `LIVE_LEAD_PASSWORD=... python scripts/live_test.py` (costs Gemini quota; free tier is tiny and resets about 13:00 PKT). Redeploying or restarting the Render service resets the database to the seeded demo state.
 
 Gotcha: in this environment, double backslashes typed into shell commands become single ones (regex `\\b` turned into a backspace char). Edit files with the Edit/Write tools, not shell python, when regexes are involved.
 - [ ] Final: secret scan, SUBMISSION.md, final commit hash
