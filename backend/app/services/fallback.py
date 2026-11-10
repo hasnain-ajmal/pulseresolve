@@ -12,7 +12,8 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
                  "arrived", "ڈیلیوری", "پارسل"],
     "billing": ["invoice", "bill", "billing", "subscription", "refund", "overcharged", "tax", "بل"],
     "performance": ["slow", "loading", "forever", "lag", "timeout", "time out", "buffering", "takes forever", "sust", "سست"],
-    "bug": ["error", "bug", "crash", "glitch", "not working", "broken", "freez", "hang", "kaam nahi", "something went wrong"],
+    "bug": ["error", "bug", "crash", "force close", "force closes", "glitch", "not working", "broken", "freez", "hang", "kaam nahi",
+            "something went wrong", "app band"],
     "account": ["account", "profile", "email change", "update my email", "delete my account", "address change", "اکاؤنٹ"],
 }
 CATEGORY_ORDER = ["payment", "login", "delivery", "billing", "performance", "bug", "account"]
@@ -36,7 +37,7 @@ SYMPTOM_PATTERNS: list[tuple[str, str]] = [
     ("cannot log in", r"log ?in|sign ?in|locked|password (reset|nahi|not)|لاگ ان"),
     ("slow loading", r"slow|loading|\blag\b|takes? (forever|long)|buffering|sust"),
     ("app crash", r"crash|force close|freez|\bhang\b"),
-    ("late delivery", r"\blate\b|delay|not (yet )?(delivered|arrived|received)|nahi (pohcha|pahucha|aaya|mila)|waiting|"
+    ("late delivery", r"\blate\b|delay|not (yet )?(delivered|arrived|received)|nahi (pohcha|pahucha|aaya)|waiting|"
                       r"\d+ days?|days? (ago|late)|din ho|tracking (has )?(not|nahi)|supposed to arrive|abhi tak"),
     ("wrong item", r"wrong (item|product)|damaged|broken item|galat"),
     ("rude rider", r"rude|behav|misbehav"),
