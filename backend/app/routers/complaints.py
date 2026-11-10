@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.errors import ApiError
-from app.models import Complaint, User
-from app.schemas import ComplaintCreate, ComplaintOut, Paged
+from app.models import Complaint, ComplaintEvent, User, utcnow
+from app.schemas import (AssignComplaintIn, ComplaintCreate, ComplaintOut, Paged, ReopenComplaintIn, ResolveComplaintIn)
 from app.security import get_current_user, rate_limit
 from app.services import intake
 
@@ -86,9 +86,60 @@ def list_complaints(page: int = Query(1, ge=1, le=10000), size: int = Query(20, 
     return Paged[ComplaintOut](items=[ComplaintOut.model_validate(c) for c in items], total=total, page=page, size=size)
 
 
-@router.get("/{cid}", response_model=ComplaintOut)
-def get_complaint(cid: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def _load(db: Session, cid: int) -> Complaint:
     c = db.get(Complaint, cid)
     if not c:
         raise ApiError(404, "not_found", "Complaint not found.")
+    return c
+
+
+def _standalone(c: Complaint, action: str) -> None:
+    """Only complaints outside incidents are handled directly; grouped ones are managed through their incident."""
+    if c.incident_id is not None:
+        raise ApiError(409, "invalid_transition",
+                       f"This complaint belongs to incident #{c.incident_id}. Manage it through the incident.")
+
+
+@router.get("/{cid}", response_model=ComplaintOut)
+def get_complaint(cid: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    return _load(db, cid)
+
+
+@router.post("/{cid}/assign", response_model=ComplaintOut)
+def assign_complaint(cid: int, body: AssignComplaintIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    c = _load(db, cid)
+    _standalone(c, "assign")
+    if c.status != "new":
+        raise ApiError(409, "invalid_transition", f"Cannot assign a complaint that is {c.status}.")
+    c.assigned_team = body.assigned_team
+    db.add(ComplaintEvent(complaint_id=c.id, action="assigned", actor=user.username, note=body.assigned_team))
+    db.commit()
+    return c
+
+
+@router.post("/{cid}/resolve", response_model=ComplaintOut)
+def resolve_complaint(cid: int, body: ResolveComplaintIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    c = _load(db, cid)
+    _standalone(c, "resolve")
+    if c.status != "new":
+        raise ApiError(409, "invalid_transition", f"Cannot resolve a complaint that is {c.status}.")
+    try:
+        c.status, c.resolution_note, c.resolved_at = "resolved", body.resolution_note, utcnow()
+        db.add(ComplaintEvent(complaint_id=c.id, action="resolved", actor=user.username, note=body.resolution_note))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise ApiError(500, "server_error", "Could not resolve the complaint. Nothing was changed.")
+    return c
+
+
+@router.post("/{cid}/reopen", response_model=ComplaintOut)
+def reopen_complaint(cid: int, body: ReopenComplaintIn | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    c = _load(db, cid)
+    _standalone(c, "reopen")
+    if c.status != "resolved":
+        raise ApiError(409, "invalid_transition", f"Cannot reopen a complaint that is {c.status}.")
+    c.status, c.resolved_at, c.resolution_note = "new", None, None
+    db.add(ComplaintEvent(complaint_id=c.id, action="reopened", actor=user.username, note=(body.note if body else "Reopened")))
+    db.commit()
     return c

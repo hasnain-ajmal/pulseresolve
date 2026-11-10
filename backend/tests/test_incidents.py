@@ -131,3 +131,56 @@ def test_csv_import_handles_bad_rows(client, auth):
     assert bad.status_code == 422
     big = client.post("/api/complaints/import", headers=auth, files={"file": ("c.csv", b"text\n" + b"x" * 1_100_000, "text/csv")})
     assert big.status_code == 422
+
+
+# ---- standalone complaints: assign, resolve, reopen ---------------------------------------------------------
+def _one_off(client):
+    return submit(client, "Please add a dark mode option to the mobile app, my eyes hurt at night.").json()
+
+
+def test_standalone_assign_resolve_reopen_flow(client, auth, db):
+    from app.models import ComplaintEvent
+    c = _one_off(client)
+    assert c["status"] == "new" and c["incident_id"] is None and c["assigned_team"] is None
+    r = client.post(f"/api/complaints/{c['id']}/assign", json={"assigned_team": "Product Team"}, headers=auth)
+    assert r.status_code == 200 and r.json()["assigned_team"] == "Product Team"
+    r = client.post(f"/api/complaints/{c['id']}/resolve", json={"resolution_note": "Added to the roadmap"}, headers=auth)
+    j = r.json()
+    assert r.status_code == 200 and j["status"] == "resolved" and j["resolved_at"].endswith("Z") and j["resolution_note"] == "Added to the roadmap"
+    # leaves the standalone list, but is never deleted
+    assert client.get("/api/complaints?status=new", headers=auth).json()["total"] == 0
+    assert client.get(f"/api/complaints/{c['id']}", headers=auth).status_code == 200
+    r = client.post(f"/api/complaints/{c['id']}/reopen", json={"note": "Customer wrote again"}, headers=auth)
+    assert r.json()["status"] == "new" and r.json()["resolved_at"] is None
+    assert [e.action for e in db.query(ComplaintEvent).order_by(ComplaintEvent.id)] == ["assigned", "resolved", "reopened"]
+
+
+def test_standalone_actions_rejected_in_wrong_state(client, auth):
+    c = _one_off(client)
+    assert client.post(f"/api/complaints/{c['id']}/reopen", json={}, headers=auth).status_code == 409   # not resolved yet
+    client.post(f"/api/complaints/{c['id']}/resolve", json={"resolution_note": "done"}, headers=auth)
+    assert client.post(f"/api/complaints/{c['id']}/resolve", json={"resolution_note": "again"}, headers=auth).status_code == 409
+    assert client.post(f"/api/complaints/{c['id']}/assign", json={"assigned_team": "X Team"}, headers=auth).status_code == 409
+    assert client.post(f"/api/complaints/{c['id']}/resolve", json={"resolution_note": "x"}, headers=auth).status_code == 422
+    assert client.post("/api/complaints/9999/resolve", json={"resolution_note": "done"}, headers=auth).status_code == 404
+
+
+def test_grouped_complaint_cannot_be_handled_individually(client, auth):
+    iid = make_incident(client, auth)
+    c = client.get(f"/api/incidents/{iid}", headers=auth).json()["complaints"][0]
+    for action, body in (("assign", {"assigned_team": "Ops"}), ("resolve", {"resolution_note": "done"}), ("reopen", {})):
+        r = client.post(f"/api/complaints/{c['id']}/{action}", json=body, headers=auth)
+        assert r.status_code == 409 and "incident" in r.json()["message"].lower()
+
+
+def test_resolved_standalone_does_not_join_new_incidents(client, auth):
+    c = submit(client, PAYMENT[0], name="User A").json()
+    client.post(f"/api/complaints/{c['id']}/resolve", json={"resolution_note": "handled directly"}, headers=auth)
+    submit(client, PAYMENT[1], name="User B")
+    submit(client, PAYMENT[2], name="User C")
+    assert client.get("/api/incidents", headers=auth).json()["total"] == 0  # the resolved one is out of the pool
+
+
+@pytest.mark.parametrize("action,body", [("assign", {"assigned_team": "Ops"}), ("resolve", {"resolution_note": "done"}), ("reopen", {})])
+def test_standalone_actions_need_login(client, action, body):
+    assert client.post(f"/api/complaints/1/{action}", json=body).status_code == 401

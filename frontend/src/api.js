@@ -233,6 +233,19 @@ export const api = {
     }
   },
 
+  // Standalone complaints (not in any incident) are handled directly. Live API only.
+  async assignComplaint(id, assigned_team) {
+    return request(`/complaints/${id}/assign`, { method: 'POST', body: JSON.stringify({ assigned_team }) });
+  },
+
+  async resolveComplaint(id, resolution_note) {
+    return request(`/complaints/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution_note }) });
+  },
+
+  async reopenComplaint(id, note = 'Reopened') {
+    return request(`/complaints/${id}/reopen`, { method: 'POST', body: JSON.stringify({ note }) });
+  },
+
   async importCsv(file) {
     if (useLiveApi) {
       const formData = new FormData();

@@ -60,6 +60,26 @@ class ComplaintOut(BaseModel):
     status: str
     incident_id: int | None
     created_at: UTCDatetime
+    assigned_team: str | None = None
+    resolution_note: str | None = None
+    resolved_at: UTCDatetime | None = None
+
+
+class AssignComplaintIn(BaseModel):
+    assigned_team: str = Field(min_length=1, max_length=80)
+
+    @field_validator("assigned_team", mode="before")
+    @classmethod
+    def _t(cls, v):
+        return clean_text(v) if isinstance(v, str) else v
+
+
+class ResolveComplaintIn(BaseModel):
+    resolution_note: str = Field(min_length=3, max_length=500)
+
+
+class ReopenComplaintIn(BaseModel):
+    note: str = Field(default="Reopened", max_length=300)
 
 
 class Paged[T](BaseModel):

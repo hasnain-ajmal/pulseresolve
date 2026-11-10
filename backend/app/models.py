@@ -37,6 +37,22 @@ class Complaint(Base):
     status: Mapped[str] = mapped_column(String(24), default="new", index=True)
     incident_id: Mapped[int | None] = mapped_column(ForeignKey("incidents.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # Standalone complaints (not in any incident) are handled directly:
+    assigned_team: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class ComplaintEvent(Base):
+    """Append-only history for standalone complaint actions (assigned, resolved, reopened)."""
+
+    __tablename__ = "complaint_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    complaint_id: Mapped[int] = mapped_column(ForeignKey("complaints.id"), index=True)
+    action: Mapped[str] = mapped_column(String(20))
+    actor: Mapped[str] = mapped_column(String(50))
+    note: Mapped[str] = mapped_column(String(500), default="")
+    at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Incident(Base):
