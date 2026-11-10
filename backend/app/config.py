@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     TRUST_PROXY: bool = False
 
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash-lite,gemini-3-flash-preview,gemini-2.5-flash"  # comma list, tried in order
     EMBEDDING_MODEL: str = "gemini-embedding-001"
     EMBEDDING_DIMS: int = 768
     AI_ENABLED: bool = True
@@ -45,8 +45,16 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     @property
+    def gemini_keys(self) -> list[str]:
+        return [k.strip() for k in self.GEMINI_API_KEY.split(",") if k.strip()]
+
+    @property
+    def gemini_models(self) -> list[str]:
+        return [m.strip() for m in self.GEMINI_MODEL.split(",") if m.strip()]
+
+    @property
     def ai_active(self) -> bool:
-        return bool(self.AI_ENABLED and self.GEMINI_API_KEY)
+        return bool(self.AI_ENABLED and self.gemini_keys)
 
 
 @lru_cache

@@ -8,10 +8,10 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "payment": ["payment", "paid", "deduct", "charged", "checkout", "check out", "card", "paise", "paisay", "kat gaye", "kat gaya",
                 "debited", "transaction", "wallet", "easypaisa", "jazzcash", "ادائیگی", "پیسے"],
     "login": ["login", "log in", "sign in", "signin", "password", "otp", "verification code", "locked out", "code nahi", "لاگ ان", "پاسورڈ"],
-    "delivery": ["delivery", "deliver", "courier", "parcel", "shipping", "shipment", "rider", "tracking", "pohcha", "pahucha",
+    "delivery": ["wrong item", "wrong product", "galat item", "damaged", "delivery", "deliver", "courier", "parcel", "shipping", "shipment", "rider", "tracking", "pohcha", "pahucha",
                  "arrived", "ڈیلیوری", "پارسل"],
     "billing": ["invoice", "bill", "billing", "subscription", "refund", "overcharged", "tax", "بل"],
-    "performance": ["slow", "loading", "lag", "timeout", "time out", "buffering", "takes forever", "sust", "سست"],
+    "performance": ["slow", "loading", "forever", "lag", "timeout", "time out", "buffering", "takes forever", "sust", "سست"],
     "bug": ["error", "bug", "crash", "glitch", "not working", "broken", "freez", "hang", "kaam nahi", "something went wrong"],
     "account": ["account", "profile", "email change", "update my email", "delete my account", "address change", "اکاؤنٹ"],
 }
@@ -27,15 +27,16 @@ SYMPTOM_PATTERNS: list[tuple[str, str]] = [
     ("checkout failing", r"checkout|check out"),
     ("no order confirmation", r"confirmation|confirm(ed)? (email|message|sms)|no (email|sms)"),
     ("order stuck pending", r"pending|stuck|processing for"),
-    ("order not created", r"order (was )?(not|nahi)|no order|order nahi (bana|bani)|not created|آرڈر نہیں"),
+    ("order not created", r"order (was )?(not|nahi) (created|bana|bani|placed)|no order|order nahi (bana|bani|show)|not created|آرڈر نہیں"),
     ("card declined", r"declin|card (not|nahi) (accept|work)|rejected card"),
-    ("double charge", r"twice|double charge|two times|do baar|charged double"),
+    ("double charge", r"twice|double|two (payments|times)|do baar"),
     ("refund not received", r"refund"),
-    ("otp not received", r"otp|verification code|code nahi|sms code"),
+    ("otp not received", r"otp|او ٹی پی|verification code|login code|code nahi|sms code|code never"),
+    ("password reset email missing", r"reset (password|link)|password reset|password mail"),
     ("cannot log in", r"log ?in|sign ?in|locked|password (reset|nahi|not)|لاگ ان"),
-    ("slow loading", r"slow|loading|lag\b|takes? (forever|long)|buffering|sust"),
-    ("app crash", r"crash|force close|freez|hang"),
-    ("late delivery", r"late|delay|not (yet )?(delivered|arrived|received)|nahi (pohcha|pahucha|aaya|mila)|waiting|"
+    ("slow loading", r"slow|loading|\blag\b|takes? (forever|long)|buffering|sust"),
+    ("app crash", r"crash|force close|freez|\bhang\b"),
+    ("late delivery", r"\blate\b|delay|not (yet )?(delivered|arrived|received)|nahi (pohcha|pahucha|aaya|mila)|waiting|"
                       r"\d+ days?|days? (ago|late)|din ho|tracking (has )?(not|nahi)|supposed to arrive|abhi tak"),
     ("wrong item", r"wrong (item|product)|damaged|broken item|galat"),
     ("rude rider", r"rude|behav|misbehav"),
@@ -173,11 +174,15 @@ def fallback_incident(members: list[dict]) -> dict:
 FAMILIES: dict[str, set[str]] = {
     "order-payment flow": {"payment deducted", "checkout failing", "no order confirmation", "order stuck pending", "order not created"},
     "double billing": {"double charge", "refund not received"},
-    "sign-in codes": {"otp not received", "cannot log in"},
+    "sign-in codes": {"otp not received"},
+    "password reset": {"password reset email missing"},
     "delivery delay": {"late delivery"},
     "slowness": {"slow loading", "app is slow after update"},
     "crashes": {"app crash", "error message"},
 }
+
+
+GENERIC = {"cannot log in", "error message", "slow loading"}  # too coarse to prove a shared cause alone
 
 
 def symptom_families(symptoms: list[str]) -> set[str]:

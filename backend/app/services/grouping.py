@@ -62,7 +62,7 @@ def _symptom_sim(a: Complaint, b: Complaint) -> float:
     if a.category != b.category:
         return 0.0
     sa, sb = a.symptoms or [], b.symptoms or []
-    if set(sa) & set(sb):
+    if (set(sa) & set(sb)) - fallback.GENERIC:
         return 0.8
     if fallback.symptom_families(sa) & fallback.symptom_families(sb):
         return 0.75
@@ -79,7 +79,7 @@ def _tokens(symptoms: list[str]) -> set[str]:
 
 
 def overlap(a: list[str], b: list[str]) -> list[str]:
-    shared = sorted(set(a) & set(b))
+    shared = sorted((set(a) & set(b)) - fallback.GENERIC)
     if shared:
         return shared
     fams = sorted(fallback.symptom_families(a) & fallback.symptom_families(b))

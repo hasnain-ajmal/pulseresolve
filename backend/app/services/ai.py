@@ -92,20 +92,31 @@ class IncidentOut(BaseModel):
     suggested_actions: list[str] = Field(default_factory=list, max_length=6)
 
 
-# ---- transport, retries, breaker ----------------------------------------------
+# ---- transport, retries, quota-aware model/key rotation, breaker ------------------------
+# Free-tier quotas are small (for example 20 generate requests per day per model). So we rotate across several
+# models and, optionally, several API keys, and remember which combinations are exhausted.
 _lock = threading.Lock()
 _failures = 0
 _open_until = 0.0
 _sem = threading.Semaphore(3)
+_exhausted: dict[tuple[int, str], float] = {}
+_local = threading.local()
+_forced_off = False
+
+
+class _Retryable(Exception):
+    pass
+
+
+class _Exhausted(Exception):
+    pass
 
 
 def reset_breaker() -> None:
     global _failures, _open_until
     with _lock:
         _failures, _open_until = 0, 0.0
-
-
-_forced_off = False
+        _exhausted.clear()
 
 
 class disabled:
@@ -120,8 +131,22 @@ class disabled:
         _forced_off = self._prev
 
 
+def _combos() -> list[tuple[int, str]]:
+    now = time.monotonic()
+    return [(ki, m) for m in settings.gemini_models for ki in range(len(settings.gemini_keys))
+            if _exhausted.get((ki, m), 0) <= now]
+
+
 def available() -> bool:
-    return (not _forced_off) and settings.ai_active and time.monotonic() >= _open_until
+    if _forced_off or not settings.ai_active or time.monotonic() < _open_until:
+        return False
+    return bool(_combos())
+
+
+def status() -> dict:
+    now = time.monotonic()
+    return {"keys": len(settings.gemini_keys), "models": settings.gemini_models,
+            "exhausted": [f"key{ki}/{m}" for (ki, m), until in _exhausted.items() if until > now]}
 
 
 def _record(ok: bool) -> None:
@@ -133,55 +158,84 @@ def _record(ok: bool) -> None:
             _failures += 1
             if _failures >= settings.AI_BREAKER_FAILURES:
                 _open_until = time.monotonic() + settings.AI_BREAKER_SECONDS
+                _failures = 0
                 log.warning("AI circuit breaker open for %ss", settings.AI_BREAKER_SECONDS)
 
 
+def _key() -> str:
+    keys = settings.gemini_keys
+    return keys[getattr(_local, "key_index", 0) % len(keys)] if keys else ""
+
+
 def _post(path: str, body: dict) -> dict:
-    """Single HTTP call. Tests monkeypatch this function."""
-    r = httpx.post(f"{BASE}/{path}", json=body, headers={"x-goog-api-key": settings.GEMINI_API_KEY},
-                   timeout=settings.AI_TIMEOUT_SECONDS)
-    if r.status_code == 429 or r.status_code >= 500:
+    """Single HTTP call using the current key. Tests monkeypatch this function."""
+    r = httpx.post(f"{BASE}/{path}", json=body, headers={"x-goog-api-key": _key()}, timeout=settings.AI_TIMEOUT_SECONDS)
+    if r.status_code == 429:
+        low = r.text.lower()
+        if "per day" in low or "perday" in low or "daily" in low:
+            raise _Exhausted()
+        raise _Retryable(429)
+    if r.status_code >= 500:
         raise _Retryable(r.status_code)
     if r.status_code >= 400:
         raise AIError(f"gemini http {r.status_code}")
     return r.json()
 
 
-class _Retryable(Exception):
-    pass
+def _attempt(path: str, body: dict) -> dict:
+    last: Exception | None = None
+    for attempt in range(settings.AI_MAX_ATTEMPTS):
+        try:
+            return _post(path, body)
+        except _Retryable as e:
+            last = e
+        except (httpx.HTTPError, ValueError) as e:
+            last = e
+        if attempt < settings.AI_MAX_ATTEMPTS - 1:
+            time.sleep(min(8.0, (2 ** attempt) + random.random()))
+    raise _Retryable(str(last))
 
 
-def _call(path: str, body: dict) -> dict:
+def _call(path_for_model, body: dict, models: list[str]) -> dict:
+    """Try each (key, model) combination that is not known to be exhausted. path_for_model(model) builds the path."""
     if not available():
         raise AIError("ai unavailable")
     last: Exception | None = None
     with _sem:
-        for attempt in range(settings.AI_MAX_ATTEMPTS):
+        for ki, model in [(k, m) for m in models for k in range(len(settings.gemini_keys)) if _exhausted.get((k, m), 0) <= time.monotonic()]:
+            _local.key_index = ki
             try:
-                out = _post(path, body)
+                out = _attempt(path_for_model(model), body)
                 _record(True)
                 return out
+            except _Exhausted:
+                _exhausted[(ki, model)] = time.monotonic() + 3600
+                log.warning("quota exhausted for key%s/%s, rotating", ki, model)
+                last = AIError("quota exhausted")
             except _Retryable as e:
                 last = e
-            except (httpx.HTTPError, ValueError) as e:
-                last = e
             except AIError as e:
-                _record(False)
-                raise e
-            if attempt < settings.AI_MAX_ATTEMPTS - 1:
-                time.sleep(min(8.0, (2 ** attempt) + random.random()))
+                last = e
     _record(False)
-    raise AIError(f"gemini failed: {type(last).__name__}")
+    raise AIError(f"gemini failed: {type(last).__name__ if last else 'unavailable'}")
 
 
 def _generate_json(system: str, user: str, model_cls: type[BaseModel], max_tokens: int = 1200) -> BaseModel:
-    body = {
+    base = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": user}]}],
         "generationConfig": {"temperature": 0.1, "maxOutputTokens": max_tokens, "responseMimeType": "application/json"},
     }
     for attempt in range(2):  # one retry on invalid output
-        data = _call(f"models/{settings.GEMINI_MODEL}:generateContent", body)
+        # 2.5 models spend output tokens on hidden "thinking", which can truncate the JSON; this task needs none.
+        def path_for(model: str) -> str:
+            if "2.5" in model:
+                base["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
+            else:
+                base["generationConfig"].pop("thinkingConfig", None)
+            return f"models/{model}:generateContent"
+
+        data = _call(path_for, base, settings.gemini_models)
         try:
             text = data["candidates"][0]["content"]["parts"][0]["text"]
             return model_cls.model_validate(json.loads(text))
@@ -221,7 +275,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
              "outputDimensionality": settings.EMBEDDING_DIMS} for t in texts]
     out: list[list[float]] = []
     for i in range(0, len(reqs), 50):
-        data = _call(f"{model}:batchEmbedContents", {"requests": reqs[i:i + 50]})
+        data = _call(lambda _m: f"{model}:batchEmbedContents", {"requests": reqs[i:i + 50]}, [settings.EMBEDDING_MODEL])
         try:
             for e in data["embeddings"]:
                 v = [float(x) for x in e["values"]]

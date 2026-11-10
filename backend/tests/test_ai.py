@@ -105,3 +105,25 @@ def test_embedding_helper_normalises(monkeypatch):
     monkeypatch.setattr(ai, "_post", lambda p, b: {"embeddings": [{"values": [3.0, 4.0]}]})
     v = ai.embed_texts(["x"])[0]
     assert abs(sum(x * x for x in v) - 1.0) < 1e-9
+
+
+def test_quota_exhausted_model_rotates_and_is_remembered(client, monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "key-a,key-b")
+    monkeypatch.setattr(settings, "GEMINI_MODEL", "model-one,model-two")
+    seen = []
+
+    def post(path, body):
+        seen.append((ai._key(), path))
+        if "model-one" in path and ai._key() == "key-a":
+            raise ai._Exhausted()
+        return _text({"category": "payment", "sentiment": "negative", "urgency": "high", "symptoms": ["payment deducted"],
+                      "affected_service": "Payments", "language": "en"})
+
+    monkeypatch.setattr(ai, "_post", post)
+    a = ai.analyze_complaint("Payment deducted but order not created")
+    assert a.category == "payment"
+    assert ("key-b", "models/model-one:generateContent") in seen          # next key, same model
+    before = len(seen)
+    ai.analyze_complaint("Another payment deducted problem here")
+    assert all(not (k == "key-a" and "model-one" in p) for k, p in seen[before:])  # exhausted combo skipped
+    assert "key0/model-one" in ai.status()["exhausted"]
