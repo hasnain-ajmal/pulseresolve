@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     TRUST_PROXY: bool = False
 
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash-lite,gemini-3-flash-preview,gemini-2.5-flash"  # comma list, tried in order
+    GEMINI_MODEL: str = "gemini-2.5-flash-lite,gemini-2.5-flash,gemini-3-flash-preview"  # comma list, tried in order
     EMBEDDING_MODEL: str = "gemini-embedding-001"
     EMBEDDING_DIMS: int = 768
     AI_ENABLED: bool = True

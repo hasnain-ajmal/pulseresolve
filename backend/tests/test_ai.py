@@ -64,11 +64,14 @@ def test_invalid_ai_json_falls_back(client, auth, monkeypatch):
     assert r.status_code == 201 and r.json()["analysis_source"] == "fallback" and r.json()["category"] == "payment"
 
 
-def test_bad_enum_in_ai_output_falls_back(client, monkeypatch):
+def test_unknown_mood_word_is_normalised_not_fatal(client, monkeypatch):
+    """An unexpected sentiment word no longer throws away the whole answer: it becomes 'neutral'. Truly unusable output
+    (not JSON at all) still falls back, see test_invalid_ai_json_falls_back."""
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
     bad = _text({"category": "payment", "sentiment": "ecstatic", "urgency": "high", "symptoms": [], "affected_service": "P"})
-    monkeypatch.setattr(ai, "_post", lambda p, b: bad)
-    assert submit(client, PAYMENT[0]).json()["analysis_source"] == "fallback"
+    monkeypatch.setattr(ai, "_post", lambda p, b: bad if "generateContent" in p else {"embeddings": [{"values": [1.0, 0.0]}]})
+    j = submit(client, PAYMENT[0]).json()
+    assert j["analysis_source"] == "ai" and j["sentiment"] == "neutral" and j["category"] == "payment"
 
 
 def test_gemini_down_rate_limited_and_breaker(client, auth, monkeypatch):
@@ -127,3 +130,35 @@ def test_quota_exhausted_model_rotates_and_is_remembered(client, monkeypatch):
     ai.analyze_complaint("Another payment deducted problem here")
     assert all(not (k == "key-a" and "model-one" in p) for k, p in seen[before:])  # exhausted combo skipped
     assert "key0/model-one" in ai.status()["exhausted"]
+
+
+# ---- tolerant parsing: real model answers are messier than a perfect JSON object --------------------------------
+def _reply(text):
+    return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
+
+
+@pytest.mark.parametrize("label,text", [
+    ("code fence", '```json\n{"category":"payment","sentiment":"negative","urgency":"high","symptoms":["payment deducted"],"affected_service":"Payments"}\n```'),
+    ("text around", 'Here is the analysis: {"category":"payment","sentiment":"negative","urgency":"high","symptoms":[],"affected_service":"Payments"} Hope this helps.'),
+    ("too many symptoms", '{"category":"payment","sentiment":"negative","urgency":"high","symptoms":["a1","b2","c3","d4","e5","f6","g7","h8","i9"],"affected_service":"Payments"}'),
+    ("long service name", '{"category":"payment","sentiment":"negative","urgency":"high","symptoms":[],"affected_service":"' + "S" * 200 + '"}'),
+    ("unknown sentiment and urgency", '{"category":"payment","sentiment":"mixed","urgency":"asap","symptoms":[],"affected_service":"Payments"}'),
+    ("problem_count as text", '{"category":"payment","sentiment":"negative","urgency":"high","symptoms":[],"affected_service":"Payments","problem_count":"2"}'),
+    ("unknown category", '{"category":"banana","sentiment":"negative","urgency":"high","symptoms":[],"affected_service":"Payments"}'),
+], ids=["fence", "around", "symptoms", "service", "enums", "count", "category"])
+def test_messy_but_usable_model_answers_are_accepted(client, monkeypatch, label, text):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(ai, "_post", lambda p, b: _reply(text) if "generateContent" in p else {"embeddings": [{"values": [1.0, 0.0]}]})
+    a = ai.analyze_complaint("Payment deducted but no order")
+    assert a.category in ("payment", "other") and len(a.symptoms) <= 6 and len(a.affected_service) <= 60
+    assert a.sentiment in ("positive", "neutral", "negative", "frustrated") and a.urgency in ("low", "medium", "high", "critical")
+
+
+def test_thought_parts_are_ignored_and_garbage_still_falls_back(client, monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+    good = '{"category":"login","sentiment":"neutral","urgency":"low","symptoms":[],"affected_service":"Authentication"}'
+    monkeypatch.setattr(ai, "_post", lambda p, b: {"candidates": [{"content": {"parts": [{"text": "thinking about it...", "thought": True}, {"text": good}]}}]})
+    assert ai.analyze_complaint("cannot log in").category == "login"
+    monkeypatch.setattr(ai, "_post", lambda p, b: _reply("I am sorry, I cannot help with that."))
+    with pytest.raises(ai.AIError):
+        ai.analyze_complaint("cannot log in")

@@ -30,15 +30,28 @@ class AnalysisOut(BaseModel):
     category: str
     sentiment: str
     urgency: str
-    symptoms: list[str] = Field(default_factory=list, max_length=6)
-    affected_service: str = Field(max_length=60)
-    language: str = Field(default="en", max_length=12)
+    symptoms: list[str] = Field(default_factory=list)
+    affected_service: str = "General"
+    language: str = "en"
     problem_count: int = 1
 
-    @field_validator("problem_count")
+    @field_validator("problem_count", mode="before")
     @classmethod
     def _pc(cls, v):
-        return min(max(int(v), 1), 5)
+        try:
+            return min(max(int(v), 1), 5)
+        except (TypeError, ValueError):
+            return 1
+
+    @field_validator("affected_service", mode="before")
+    @classmethod
+    def _svc(cls, v):
+        return (str(v).strip()[:60] or "General") if v is not None else "General"
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def _lang(cls, v):
+        return (str(v).strip()[:12] or "en") if v is not None else "en"
 
     @field_validator("category")
     @classmethod
@@ -49,29 +62,32 @@ class AnalysisOut(BaseModel):
     @field_validator("sentiment")
     @classmethod
     def _sent(cls, v):
-        v = v.strip().lower()
-        if v not in SENTIMENTS:
-            raise ValueError("bad sentiment")
-        return v
+        v = str(v).strip().lower()
+        return v if v in SENTIMENTS else "neutral"
 
     @field_validator("urgency")
     @classmethod
     def _urg(cls, v):
-        v = v.strip().lower()
-        if v not in URGENCIES:
-            raise ValueError("bad urgency")
-        return v
+        v = str(v).strip().lower()
+        return v if v in URGENCIES else "medium"
 
-    @field_validator("symptoms")
+    @field_validator("symptoms", mode="before")
     @classmethod
     def _sym(cls, v):
-        return [s.strip().lower()[:60] for s in v if isinstance(s, str) and s.strip()][:6]
+        if not isinstance(v, list):
+            return []
+        return [str(s).strip().lower()[:60] for s in v if str(s).strip()][:6]
 
 
 class VerdictItem(BaseModel):
     id: int
     same_cause: bool
-    reason: str = Field(default="", max_length=300)
+    reason: str = ""
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _r(cls, v):
+        return str(v or "")[:300]
 
 
 class VerdictOut(BaseModel):
@@ -79,9 +95,19 @@ class VerdictOut(BaseModel):
 
 
 class HypothesisIn(BaseModel):
-    text: str = Field(max_length=300)
+    text: str
     confidence: str = "low"
     cited_complaint_ids: list[int] = Field(default_factory=list)
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def _t(cls, v):
+        return str(v or "")[:300]
+
+    @field_validator("cited_complaint_ids", mode="before")
+    @classmethod
+    def _ids(cls, v):
+        return [int(x) for x in v if str(x).lstrip("-").isdigit()] if isinstance(v, list) else []
 
     @field_validator("confidence")
     @classmethod
@@ -90,12 +116,37 @@ class HypothesisIn(BaseModel):
 
 
 class IncidentOut(BaseModel):
-    title: str = Field(max_length=160)
-    affected_service: str = Field(max_length=60)
-    summary: str = Field(max_length=900)
-    shared_symptoms: list[str] = Field(default_factory=list, max_length=8)
-    hypotheses: list[HypothesisIn] = Field(default_factory=list, max_length=5)
-    suggested_actions: list[str] = Field(default_factory=list, max_length=6)
+    title: str
+    affected_service: str = "General"
+    summary: str
+    shared_symptoms: list[str] = Field(default_factory=list)
+    hypotheses: list[HypothesisIn] = Field(default_factory=list)
+    suggested_actions: list[str] = Field(default_factory=list)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def _title(cls, v):
+        return str(v or "Related complaints")[:160]
+
+    @field_validator("affected_service", mode="before")
+    @classmethod
+    def _svc(cls, v):
+        return (str(v).strip()[:60] or "General") if v is not None else "General"
+
+    @field_validator("summary", mode="before")
+    @classmethod
+    def _sum(cls, v):
+        return str(v or "")[:900]
+
+    @field_validator("shared_symptoms", "suggested_actions", mode="before")
+    @classmethod
+    def _lst(cls, v):
+        return [str(x).strip()[:200] for x in v if str(x).strip()][:8] if isinstance(v, list) else []
+
+    @field_validator("hypotheses", mode="before")
+    @classmethod
+    def _hyp(cls, v):
+        return v[:5] if isinstance(v, list) else []
 
 
 # ---- transport, retries, quota-aware model/key rotation, breaker ------------------------
@@ -229,6 +280,21 @@ def _call(path_for_model, body: dict, models: list[str]) -> dict:
     raise AIError(f"gemini failed: {type(last).__name__ if last else 'unavailable'}")
 
 
+def _loads(text: str):
+    """Parse JSON, tolerating markdown code fences or text around the object."""
+    t = text.strip()
+    if t.startswith("```"):
+        t = t.strip("`")
+        t = t[4:] if t.lower().startswith("json") else t
+    try:
+        return json.loads(t)
+    except ValueError:
+        a, b = t.find("{"), t.rfind("}")
+        if a != -1 and b > a:
+            return json.loads(t[a:b + 1])
+        raise
+
+
 def _generate_json(system: str, user: str, model_cls: type[BaseModel], max_tokens: int = 1200) -> BaseModel:
     base = {
         "systemInstruction": {"parts": [{"text": system}]},
@@ -240,16 +306,21 @@ def _generate_json(system: str, user: str, model_cls: type[BaseModel], max_token
         def path_for(model: str) -> str:
             if "2.5" in model:
                 base["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
+                base["generationConfig"]["maxOutputTokens"] = max_tokens
             else:
+                # other models may spend output tokens on hidden reasoning; leave generous room so the JSON is not cut off
                 base["generationConfig"].pop("thinkingConfig", None)
+                base["generationConfig"]["maxOutputTokens"] = max_tokens + 3000
             return f"models/{model}:generateContent"
 
         data = _call(path_for, base, settings.gemini_models)
+        text = ""
         try:
-            text = data["candidates"][0]["content"]["parts"][0]["text"]
-            return model_cls.model_validate(json.loads(text))
-        except (KeyError, IndexError, TypeError, ValueError, ValidationError):
-            log.warning("invalid AI output (attempt %s)", attempt + 1)
+            parts = data["candidates"][0]["content"]["parts"]
+            text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and not p.get("thought"))
+            return model_cls.model_validate(_loads(text))
+        except (KeyError, IndexError, TypeError, ValueError, ValidationError) as e:
+            log.warning("invalid AI output (attempt %s): %s | %r", attempt + 1, type(e).__name__, text[:160])
     _record(False)
     raise AIError("invalid AI output")
 

@@ -23,7 +23,7 @@ python scripts/eval_grouping.py --ai     # needs GEMINI_API_KEY and free quota
 | Integration / API (HTTP client, database, fake Gemini) | 139 | 139 | 0 |
 | End-to-end on the deployed system (`scripts/live_test.py`, real Gemini, 42 checks) | 42 | 40 | 2 (investigated and fixed, see D-07 and D-08) |
 
-Last full run: 141 passed (backend/tests).
+Last full run: 149 passed (backend/tests).
 
 ## Edge cases covered
 
@@ -84,6 +84,7 @@ Honest limits: the offline analyser's keyword rules and thresholds were tuned wh
 | D-09 | Numbers larger than the database can store (for example complaint ID 99999999999999999999) caused a 500 error | Tester pass | Medium | Fixed (clean 422) | see git log |
 | D-10 | Deleted incidents and complaints still accepted reopen, assign, resolve and edit | Tester pass | Medium | Fixed (409 until restored) | see git log |
 | D-11 | Five simultaneous resolve clicks: all but one returned a 500 error and the winner was not guaranteed; one parallel submission failed | Tester pass on a database file | High | Fixed (atomic compare-and-set on status, WAL mode and busy timeout) | see git log |
+| D-12 | With a second Gemini key, answers from one model were rejected as invalid output (long strings, too many symptoms, unexpected mood words, code fences or hidden-reasoning parts) so the app fell back to the offline reader | Live check after adding a key; Render log | High | Fixed: tolerant parsing and clamping, generous token room, reliable models first, and the reason is now logged | see git log |
 | D-06 | Tests hit the intake rate limit and failed | Test run | Low | Fixed (limiter reset in test helper) | e1926e5 |
 
 ### Live end-to-end run (deployed system, 10 Nov 2026, `scripts/live_test.py`)
