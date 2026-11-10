@@ -81,6 +81,8 @@ python scripts/eval_grouping.py --ai     # same with Gemini (needs a key and fre
 - [Testing](docs/testing.md)
 - [AI usage log](docs/ai-usage-log.md)
 - [Judge checks](docs/judge-checks.md)
+- [How the system works (plain-language guide)](docs/SYSTEM_GUIDE.md)
+- [Judge Q&A](docs/JUDGE_QA.md)
 - [Frontend spec / API contract](docs/frontend-spec.md)
 
 ## Team

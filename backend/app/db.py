@@ -24,6 +24,9 @@ if _is_sqlite:
     def _sqlite_pragmas(dbapi_conn, _):
         cur = dbapi_conn.cursor()
         cur.execute("PRAGMA foreign_keys=ON")
+        cur.execute("PRAGMA busy_timeout=30000")
+        if ":memory:" not in settings.DATABASE_URL and settings.DATABASE_URL not in ("sqlite://", "sqlite:///"):
+            cur.execute("PRAGMA journal_mode=WAL")
         cur.close()
 
 

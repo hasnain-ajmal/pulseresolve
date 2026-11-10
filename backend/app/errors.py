@@ -32,6 +32,10 @@ def install_handlers(app: FastAPI) -> None:
         msg = f"Invalid input{(': ' + loc) if loc else ''}."
         return JSONResponse({"code": "validation_error", "message": msg}, status_code=422)
 
+    @app.exception_handler(OverflowError)
+    async def _overflow(_: Request, e: OverflowError):
+        return JSONResponse({"code": "validation_error", "message": "Invalid input: number out of range."}, status_code=422)
+
     @app.exception_handler(Exception)
     async def _any(_: Request, e: Exception):
         log.exception("Unhandled error")

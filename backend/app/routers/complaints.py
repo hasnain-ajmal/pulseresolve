@@ -88,10 +88,12 @@ def list_complaints(page: int = Query(1, ge=1, le=10000), size: int = Query(20, 
     return Paged[ComplaintOut](items=[ComplaintOut.model_validate(c) for c in items], total=total, page=page, size=size)
 
 
-def _load(db: Session, cid: int) -> Complaint:
-    c = db.get(Complaint, cid)
+def _load(db: Session, cid: int, allow_deleted: bool = True) -> Complaint:
+    c = db.get(Complaint, cid) if cid > 0 else None
     if not c:
         raise ApiError(404, "not_found", "Complaint not found.")
+    if c.deleted_at is not None and not allow_deleted:
+        raise ApiError(409, "invalid_transition", "This complaint is deleted. Restore it first.")
     return c
 
 
@@ -109,7 +111,7 @@ def get_complaint(cid: int, db: Session = Depends(get_db), _: User = Depends(get
 
 @router.post("/{cid}/assign", response_model=ComplaintOut)
 def assign_complaint(cid: int, body: AssignComplaintIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    c = _load(db, cid)
+    c = _load(db, cid, allow_deleted=False)
     _standalone(c, "assign")
     if c.status != "new":
         raise ApiError(409, "invalid_transition", f"Cannot assign a complaint that is {c.status}.")
@@ -122,10 +124,17 @@ def assign_complaint(cid: int, body: AssignComplaintIn, db: Session = Depends(ge
 
 @router.post("/{cid}/resolve", response_model=ComplaintOut)
 def resolve_complaint(cid: int, body: ResolveComplaintIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    c = _load(db, cid)
+    c = _load(db, cid, allow_deleted=False)
     _standalone(c, "resolve")
     if c.status != "new":
         raise ApiError(409, "invalid_transition", f"Cannot resolve a complaint that is {c.status}.")
+    claimed = db.query(Complaint).filter(Complaint.id == c.id, Complaint.status == "new", Complaint.deleted_at.is_(None)).update(
+        {"status": "resolved"}, synchronize_session=False)
+    if claimed != 1:
+        db.rollback()
+        db.refresh(c)
+        raise ApiError(409, "invalid_transition", f"Cannot resolve a complaint that is {c.status}.")
+    db.refresh(c)
     try:
         c.status, c.resolution_note, c.resolved_at = "resolved", body.resolution_note, utcnow()
         c.customer_message = body.customer_message or incidents_svc.DEFAULT_CUSTOMER_MESSAGE
@@ -171,7 +180,7 @@ def restore_complaint(cid: int, db: Session = Depends(get_db), user: User = Depe
 
 @router.post("/{cid}/reopen", response_model=ComplaintOut)
 def reopen_complaint(cid: int, body: ReopenComplaintIn | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    c = _load(db, cid)
+    c = _load(db, cid, allow_deleted=False)
     _standalone(c, "reopen")
     if c.status != "resolved":
         raise ApiError(409, "invalid_transition", f"Cannot reopen a complaint that is {c.status}.")

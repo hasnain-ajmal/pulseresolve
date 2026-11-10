@@ -12,10 +12,12 @@ from app.services import incidents as svc
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
-def _get(db: Session, iid: int) -> Incident:
-    inc = db.get(Incident, iid)
+def _get(db: Session, iid: int, allow_deleted: bool = False) -> Incident:
+    inc = db.get(Incident, iid) if iid > 0 else None
     if not inc:
         raise ApiError(404, "not_found", "Incident not found.")
+    if inc.deleted_at is not None and not allow_deleted:
+        raise ApiError(409, "invalid_transition", "This incident is deleted. Restore it first.")
     return inc
 
 
@@ -50,7 +52,7 @@ def graph(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
 
 @router.get("/{iid}", response_model=IncidentDetail)
 def detail(iid: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    return svc.to_detail(db, _get(db, iid))
+    return svc.to_detail(db, _get(db, iid, allow_deleted=True))
 
 
 @router.post("/{iid}/approve", response_model=IncidentDetail)
@@ -84,14 +86,14 @@ def resolve(iid: int, body: ResolveIn, db: Session = Depends(get_db), user: User
 
 @router.post("/{iid}/delete", response_model=IncidentDetail)
 def delete_incident(iid: int, body: DeleteIn, db: Session = Depends(get_db), user: User = Depends(require_lead)):
-    inc = _get(db, iid)
+    inc = _get(db, iid, allow_deleted=True)
     svc.delete(db, inc, user.username, body.reason)
     return svc.to_detail(db, inc)
 
 
 @router.post("/{iid}/restore", response_model=IncidentDetail)
 def restore_incident(iid: int, db: Session = Depends(get_db), user: User = Depends(require_lead)):
-    inc = _get(db, iid)
+    inc = _get(db, iid, allow_deleted=True)
     svc.restore(db, inc, user.username)
     return svc.to_detail(db, inc)
 

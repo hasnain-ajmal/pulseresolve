@@ -20,10 +20,10 @@ python scripts/eval_grouping.py --ai     # needs GEMINI_API_KEY and free quota
 | Type | Total | Passed | Failed |
 |------|-------|--------|--------|
 | Unit | 2 | 2 | 0 |
-| Integration / API (HTTP client, database, fake Gemini) | 77 | 77 | 0 |
+| Integration / API (HTTP client, database, fake Gemini) | 124 | 124 | 0 |
 | End-to-end on the deployed system (`scripts/live_test.py`, real Gemini, 42 checks) | 42 | 40 | 2 (investigated and fixed, see D-07 and D-08) |
 
-Last full run: 79 passed (backend/tests).
+Last full run: 126 passed (backend/tests).
 
 ## Edge cases covered
 
@@ -52,6 +52,7 @@ Last full run: 79 passed (backend/tests).
 | EC-22 | Deadlines: default by priority, custom minutes, alert window, overdue, resolved clears alert, priority change recalculates, standalone complaints, invalid input, login required | As described | test_sla.py (7 tests) | Pass |
 | EC-23 | Safe delete: standalone and finished incidents, restore, cascade, only lead may delete, grouped complaint refused, deleted items excluded from stats, alerts and grouping, record kept with audit event | As described | test_delete.py (8 tests) | Pass |
 | EC-24 | Customer tracking: received, in progress, resolved with message, default message, reopen clears it, incident message reaches every customer, 404 for unknown or deleted IDs, only minimal fields exposed, internal note never shown, rate limit | As described | test_track.py (7 tests) | Pass |
+| EC-25 | Edge-case and abuse pass: huge and negative IDs, bad pagination, deleted records, simultaneous clicks, hostile text, malformed bodies, token attacks, role escalation, CSV garbage | Clean 4xx errors, never a 500; exactly one winner on races; deleted items inert | test_edge_cases.py (47 cases) and the exploratory attack run on a real database file | Pass |
 | EC-20 | CSV: bad row, missing column, oversize file | Row errors reported, 422 for bad file | test_csv_import_handles_bad_rows | Pass |
 
 ## Measured metrics
@@ -79,6 +80,9 @@ Honest limits: the offline analyser's keyword rules and thresholds were tuned wh
 | D-05 | Gemini free tier allows only about 20 generate requests per day per model; evaluation used it up and calls failed | Real Gemini run | High | Mitigated (model and key rotation, exhausted-combo memory, fallback) | e1926e5 |
 | D-07 | Per-minute Gemini limit mid-sequence produced mixed AI/offline labels, so related complaints did not group (live test T19) | Live end-to-end run | High | Fixed (rotate on 429, compatible categories) | a83e65a |
 | D-08 | One Urdu-script submission returned no complaint in the live run (not reproducible) | Live end-to-end run | Medium | Mitigated (all AI-side exceptions fall back) | a83e65a |
+| D-09 | Numbers larger than the database can store (for example complaint ID 99999999999999999999) caused a 500 error | Tester pass | Medium | Fixed (clean 422) | see git log |
+| D-10 | Deleted incidents and complaints still accepted reopen, assign, resolve and edit | Tester pass | Medium | Fixed (409 until restored) | see git log |
+| D-11 | Five simultaneous resolve clicks: all but one returned a 500 error and the winner was not guaranteed; one parallel submission failed | Tester pass on a database file | High | Fixed (atomic compare-and-set on status, WAL mode and busy timeout) | see git log |
 | D-06 | Tests hit the intake rate limit and failed | Test run | Low | Fixed (limiter reset in test helper) | e1926e5 |
 
 ### Live end-to-end run (deployed system, 10 Nov 2026, `scripts/live_test.py`)

@@ -151,6 +151,17 @@ def flag_recurrence(db: Session, inc: Incident, c: Complaint, score: float, ev: 
 
 
 # ---- lifecycle -------------------------------------------------------------------------
+def _claim(db: Session, inc: Incident, allowed: tuple[str, ...], to: str, action: str) -> None:
+    """Atomic compare-and-set: the status changes only if it is still one of `allowed`. Of two simultaneous requests,
+    exactly one wins and the other gets a 409, instead of both succeeding."""
+    n = db.query(Incident).filter(Incident.id == inc.id, Incident.status.in_(allowed)).update({"status": to}, synchronize_session=False)
+    if n != 1:
+        db.rollback()
+        db.refresh(inc)
+        raise ApiError(409, "invalid_transition", f"Cannot {action} an incident that is {inc.status}.")
+    db.refresh(inc)
+
+
 def _need(inc: Incident, allowed: tuple[str, ...], action: str) -> None:
     if inc.status not in allowed:
         raise ApiError(409, "invalid_transition", f"Cannot {action} an incident that is {inc.status}.")
@@ -159,7 +170,7 @@ def _need(inc: Incident, allowed: tuple[str, ...], action: str) -> None:
 def approve(db: Session, inc: Incident, actor: str, team: str | None, priority: str | None, due_in_minutes: int | None = None) -> None:
     _need(inc, ("suggested",), "approve")
     frm = inc.status
-    inc.status = "open"
+    _claim(db, inc, ("suggested",), "open", "approve")
     if team:
         inc.assigned_team = team
     if priority:
@@ -172,6 +183,7 @@ def approve(db: Session, inc: Incident, actor: str, team: str | None, priority: 
 
 def reject(db: Session, inc: Incident, actor: str, reason: str) -> None:
     _need(inc, ("suggested",), "reject")
+    _claim(db, inc, ("suggested",), "rejected", "reject")
     ms = members(db, inc.id)
     ids = sorted(m.id for m in ms)
     for a, b in combinations(ids, 2):
@@ -191,7 +203,7 @@ def update(db: Session, inc: Incident, actor: str, priority: str | None, team: s
     _need(inc, ("suggested", "open", "investigating"), "edit")
     if status == "investigating":
         _need(inc, ("open",), "mark investigating")
-        inc.status = "investigating"
+        _claim(db, inc, ("open",), "investigating", "mark investigating")
         _event(db, inc, "open", "investigating", actor, "Investigation started")
     if priority and priority != inc.priority:
         inc.priority = priority
@@ -208,8 +220,9 @@ def update(db: Session, inc: Incident, actor: str, priority: str | None, team: s
 def resolve(db: Session, inc: Incident, actor: str, note: str, customer_message: str | None = None) -> None:
     """Atomic: the incident and every linked complaint change together, or nothing changes."""
     _need(inc, ("open", "investigating"), "resolve")
+    frm = inc.status
+    _claim(db, inc, ("open", "investigating"), "resolved", "resolve")
     try:
-        frm = inc.status
         linked = db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status == "linked").all()
         stamp = utcnow()
         for c in linked:
@@ -228,6 +241,7 @@ def resolve(db: Session, inc: Incident, actor: str, note: str, customer_message:
 
 def reopen(db: Session, inc: Incident, actor: str, note: str) -> None:
     _need(inc, ("resolved",), "reopen")
+    _claim(db, inc, ("resolved",), "open", "reopen")
     try:
         for c in db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status == "resolved").all():
             c.status = "linked"
