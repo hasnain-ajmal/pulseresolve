@@ -63,7 +63,8 @@ def build_content(ms: list[Complaint]) -> tuple[dict, int]:
         try:
             out = ai.summarize_incident(mdicts)
             content = out.model_dump()
-        except ai.AIError:
+        except Exception:
+            log.info("AI summary unavailable, using the template", exc_info=True)
             content = None
     if content is None:
         content = fallback.fallback_incident(mdicts)

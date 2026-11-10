@@ -46,4 +46,5 @@ for r in (auth.router, complaints.router, incidents.router, dashboard.router):
 def health():
     from app.services import ai
 
-    return {"status": "ok", "ai": "available" if ai.available() else "fallback"}
+    s = ai.status()
+    return {"status": "ok", "ai": "available" if ai.available() else "fallback", "ai_models_ready": s["ready"], "ai_models_total": s["total"]}

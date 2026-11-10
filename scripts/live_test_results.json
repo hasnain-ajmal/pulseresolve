@@ -1,0 +1,212 @@
+[
+ {
+  "name": "T01 health endpoint answers",
+  "passed": true,
+  "detail": "{\"status\":\"ok\",\"ai\":\"available\"}"
+ },
+ {
+  "name": "T02 protected route without token -> 401",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T03 protected route with bad token -> 401",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T04 wrong password -> 401 with generic body",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T05 staff login works",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T06 /auth/me returns the user",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T07 validation: short text -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T07 validation: short name -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T07 validation: missing text -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T07 validation: text too long -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T08 CORS allows the Vercel origin",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T09 CORS refuses another origin",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T10 frontend served (/ and /submit)",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T11 seeded demo data present",
+  "passed": true,
+  "detail": "19 complaints, 3 incidents"
+ },
+ {
+  "name": "T12 English complaint analysed",
+  "passed": true,
+  "detail": "payment/frustrated/critical/ai"
+ },
+ {
+  "name": "T13 Roman Urdu complaint analysed",
+  "passed": true,
+  "detail": "delivery/ai"
+ },
+ {
+  "name": "T14 Urdu-script complaint accepted",
+  "passed": false,
+  "detail": "None/None"
+ },
+ {
+  "name": "T15 prompt-injection text does not change any incident",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T16 unrelated one-off stays unassigned",
+  "passed": true,
+  "detail": "status=new"
+ },
+ {
+  "name": "T17 duplicate submission returns the same complaint",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T18 near-miss (declined card) not merged into the payment incident",
+  "passed": true,
+  "detail": "incident_id=None"
+ },
+ {
+  "name": "T19 three related complaints form one new suggested incident",
+  "passed": false,
+  "detail": "incident None"
+ },
+ {
+  "name": "T22 resolve while 'suggested' -> 409",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T23 approve -> open",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T24 mark investigating + priority edit",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T25 invalid priority -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T26 resolve updates every linked complaint",
+  "passed": true,
+  "detail": "6 complaints"
+ },
+ {
+  "name": "T27 history records each transition",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T28 resolve twice -> 409",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T29 matching complaint after resolution is flagged as a possible recurrence",
+  "passed": true,
+  "detail": "status=possible_recurrence new_matching=1"
+ },
+ {
+  "name": "T30 reopen -> open and folds the recurrence in",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T31 reject without a reason -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T32 reject -> rejected and complaints released",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T33 approve after reject -> 409",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T34 CSV import reports good and bad rows",
+  "passed": true,
+  "detail": "{\"imported\":1,\"failed\":1,\"errors\":[{\"row\":3,\"message\":\"Invalid customer_name.\"}]"
+ },
+ {
+  "name": "T35 CSV without 'text' column -> 422",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T36 CSV import needs login",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T37 dashboard totals match the complaint list",
+  "passed": true,
+  "detail": "29 total"
+ },
+ {
+  "name": "T38 graph edges point at real nodes",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T39 pagination works",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T40 unknown incident -> 404",
+  "passed": true,
+  "detail": ""
+ },
+ {
+  "name": "T41 search filter works",
+  "passed": true,
+  "detail": ""
+ }
+]

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIMS: int = 768
     AI_ENABLED: bool = True
     AI_TIMEOUT_SECONDS: float = 15.0
-    AI_MAX_ATTEMPTS: int = 3
+    AI_MAX_ATTEMPTS: int = 2
     AI_BREAKER_FAILURES: int = 3
     AI_BREAKER_SECONDS: int = 60
 

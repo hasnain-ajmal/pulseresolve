@@ -32,7 +32,7 @@ def ensure_embeddings(db: Session, complaints: list[Complaint]) -> None:
         return
     try:
         vecs = ai.embed_texts([c.text for c in missing])
-    except ai.AIError:
+    except Exception:
         return
     for c, v in zip(missing, vecs):
         c.embedding = v
@@ -59,7 +59,7 @@ def similarities(db: Session, new: Complaint, others: list[Complaint]) -> tuple[
 
 
 def _symptom_sim(a: Complaint, b: Complaint) -> float:
-    if a.category != b.category:
+    if not fallback.categories_compatible(a.category, b.category):
         return 0.0
     sa, sb = a.symptoms or [], b.symptoms or []
     if (set(sa) & set(sb)) - fallback.GENERIC:
@@ -93,7 +93,7 @@ def fallback_verify(new: Complaint, cands: list[tuple[Complaint, float]]) -> dic
     out = {}
     for c, sim in cands:
         shared = overlap(new.symptoms or [], c.symptoms or [])
-        same_cat = new.category == c.category
+        same_cat = fallback.categories_compatible(new.category, c.category)
         if same_cat and shared:
             out[c.id] = (True, f"Same {new.category} problem with shared symptoms: {', '.join(shared[:3])}.")
         elif same_cat and sim >= settings.T_STRICT_PAIR:
@@ -111,8 +111,8 @@ def verify(new: Complaint, cands: list[tuple[Complaint, float]]) -> dict[int, tu
             res = ai.verify_same_cause(new.text, [{"id": c.id, "text": c.text} for c, _ in cands])
             if len(res) == len(cands):
                 return res
-        except ai.AIError:
-            pass
+        except Exception:
+            log.info("AI verification unavailable, using the deterministic verifier", exc_info=True)
     return fallback_verify(new, cands)
 
 

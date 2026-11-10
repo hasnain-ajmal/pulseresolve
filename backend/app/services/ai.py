@@ -146,7 +146,8 @@ def available() -> bool:
 def status() -> dict:
     now = time.monotonic()
     return {"keys": len(settings.gemini_keys), "models": settings.gemini_models,
-            "exhausted": [f"key{ki}/{m}" for (ki, m), until in _exhausted.items() if until > now]}
+            "exhausted": [f"key{ki}/{m}" for (ki, m), until in _exhausted.items() if until > now],
+            "ready": len(_combos()), "total": len(settings.gemini_keys) * len(settings.gemini_models)}
 
 
 def _record(ok: bool) -> None:
@@ -213,6 +214,8 @@ def _call(path_for_model, body: dict, models: list[str]) -> dict:
                 log.warning("quota exhausted for key%s/%s, rotating", ki, model)
                 last = AIError("quota exhausted")
             except _Retryable as e:
+                # Per-minute limit or server trouble: cool this combination down and rotate to the next one right away.
+                _exhausted[(ki, model)] = time.monotonic() + 65
                 last = e
             except AIError as e:
                 last = e

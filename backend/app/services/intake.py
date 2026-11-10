@@ -22,8 +22,8 @@ def analyse(text: str) -> tuple[dict, str]:
         try:
             a = ai.analyze_complaint(text)
             return a.model_dump(), "ai"
-        except ai.AIError:
-            log.info("AI analysis unavailable, using fallback")
+        except Exception:  # any AI-side failure must never break intake
+            log.info("AI analysis unavailable, using fallback", exc_info=True)
     return fallback.analyze(text), "fallback"
 
 
@@ -45,8 +45,8 @@ def submit(db: Session, data: ComplaintCreate, actor: str = "system") -> Complai
     if ai.available():
         try:
             c.embedding = ai.embed_texts([c.text])[0]
-        except ai.AIError:
-            pass
+        except Exception:
+            log.info("embedding unavailable", exc_info=True)
     db.commit()
 
     with grouping.GROUP_LOCK:

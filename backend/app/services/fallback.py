@@ -173,13 +173,21 @@ def fallback_incident(members: list[dict]) -> dict:
 # Symptoms that point to the same underlying fault area. Used by the deterministic verifier.
 FAMILIES: dict[str, set[str]] = {
     "order-payment flow": {"payment deducted", "checkout failing", "no order confirmation", "order stuck pending", "order not created"},
-    "double billing": {"double charge", "refund not received"},
+    "double billing": {"double charge"},
     "sign-in codes": {"otp not received"},
     "password reset": {"password reset email missing"},
     "delivery delay": {"late delivery"},
     "slowness": {"slow loading", "app is slow after update"},
     "crashes": {"app crash", "error message"},
 }
+
+
+_COMPATIBLE = [{"payment", "billing"}, {"login", "account"}, {"bug", "performance"}]
+
+
+def categories_compatible(a: str, b: str) -> bool:
+    """Same category, or neighbours that AI and the offline analyser may label differently (e.g. refund: payment vs billing)."""
+    return a == b or any(a in g and b in g for g in _COMPATIBLE)
 
 
 GENERIC = {"cannot log in", "error message", "slow loading"}  # too coarse to prove a shared cause alone

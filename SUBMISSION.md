@@ -4,10 +4,10 @@ Complete before 3:00 PM. Submit your final commit hash through the organizers' f
 
 ## Submission details
 
-- **Team name:**
-- **Repository URL:**
+- **Team name:** PulseResolve (Muhammad Hasnain Ajmal, Muhammad Sohail)
+- **Repository URL:** https://github.com/hasnain-ajmal/pulseresolve
 - **Final commit hash:**
-- **Live URL / install link:**
+- **Live URL / install link:** https://pulseresolve.vercel.app (API: https://pulseresolve-api.onrender.com)
 - **Submitted at (time):**
 
 ## Checklist
