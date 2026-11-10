@@ -18,9 +18,9 @@ services:
       - key: SEED_DEMO_DATA
         value: "true"
       - key: SEED_ADMIN_PASSWORD
-        sync: false   # test account password, set in the Render dashboard
+        value: Lead-Demo-2026    # test account only (documented in the README for judges)
       - key: SEED_AGENT_PASSWORD
-        sync: false
+        value: Agent-Demo-2026   # test account only
       - key: GEMINI_API_KEY
         sync: false   # secret, set in the Render dashboard only (comma-separate several keys to share quota)
       - key: CORS_ORIGINS
