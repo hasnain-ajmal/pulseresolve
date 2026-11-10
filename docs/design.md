@@ -44,6 +44,7 @@ Frontend: React + Vite + Tailwind + Recharts on Vercel. Backend: FastAPI on Rend
 | `incidents` | id, title, affected_service, status, priority, assigned_team, summary, summary_stale, shared_symptoms (JSON), hypotheses (JSON), suggested_actions (JSON), created_at, updated_at, resolved_at |
 | `incident_evidence` | id, incident_id, complaint_a, complaint_b, similarity, reason |
 | `incident_events` | id, incident_id, from_status, to_status, actor, note, at (append-only status history) |
+| `complaint_events` | id, complaint_id, action (assigned, resolved, reopened), actor, note, at (append-only history for standalone complaints) |
 | `membership_log` | id, complaint_id, incident_id, action (attached, detached, recurrence_flagged, folded_in), score, actor, at (append-only; proves membership never changes silently) |
 | `pair_blocks` | complaint_a, complaint_b (pairs a human rejected; never re-suggested) |
 
@@ -64,6 +65,7 @@ Request and response shapes are in `docs/frontend-spec.md` (the contract shared 
 | GET | /api/incidents, /api/incidents/{id} | List, detail | Yes |
 | POST | /api/incidents/{id}/approve, /reject, /resolve, /reopen | Lifecycle actions | Yes |
 | PATCH | /api/incidents/{id} | Priority, team, mark investigating | Yes |
+| POST | /api/complaints/{id}/assign, /resolve, /reopen | Handle a standalone complaint (not in any incident) | Yes |
 | GET | /api/dashboard/stats | Dashboard data | Yes |
 | GET | /api/incidents/graph | Correlation view (stretch) | Yes |
 

@@ -20,10 +20,10 @@ python scripts/eval_grouping.py --ai     # needs GEMINI_API_KEY and free quota
 | Type | Total | Passed | Failed |
 |------|-------|--------|--------|
 | Unit | 2 | 2 | 0 |
-| Integration / API (HTTP client, database, fake Gemini) | 48 | 48 | 0 |
+| Integration / API (HTTP client, database, fake Gemini) | 55 | 55 | 0 |
 | End-to-end on the deployed system (`scripts/live_test.py`, real Gemini, 42 checks) | 42 | 40 | 2 (investigated and fixed, see D-07 and D-08) |
 
-Last full run: 50 passed (backend/tests).
+Last full run: 57 passed (backend/tests).
 
 ## Edge cases covered
 
@@ -48,6 +48,7 @@ Last full run: 50 passed (backend/tests).
 | EC-17 | Invalid input (short, long, missing, oversize) | 422 validation_error | test_submit_validation (5 cases) | Pass |
 | EC-18 | Duplicate submission (double click) | Same complaint returned, no second row | test_duplicate_submission_is_idempotent | Pass |
 | EC-19 | Urdu script and Roman Urdu complaints | Accepted and analysed | test_unicode_and_roman_urdu_accepted, eval set | Pass |
+| EC-21 | Standalone complaint: assign, resolve, reopen; wrong states; grouped complaint; login required | Correct transitions, 409 for wrong state or grouped complaint, history logged, resolved ones do not join incidents | test_incidents.py (5 tests, standalone section) | Pass |
 | EC-20 | CSV: bad row, missing column, oversize file | Row errors reported, 422 for bad file | test_csv_import_handles_bad_rows | Pass |
 
 ## Measured metrics

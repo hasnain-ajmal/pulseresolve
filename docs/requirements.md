@@ -35,6 +35,7 @@ Market value: small and mid-size support teams (e-commerce, delivery, fintech, I
 | FR-14 | CSV import of complaints (large, malformed and non-English files handled, row-level error report) | Should | Planned |
 | FR-15 | Correlation graph (incidents and complaints with similarity edges) | Stretch | Planned |
 | FR-16 | Priority score computed from complaint count, sentiment and urgency | Should | Planned |
+| FR-17 | Standalone complaints (in no incident) can be assigned to a team, resolved with a note and reopened; nothing is deleted | Must | Done |
 
 ## Non-functional requirements
 

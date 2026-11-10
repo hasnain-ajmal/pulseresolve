@@ -58,7 +58,10 @@ Colors (suggested): critical red, high orange, medium amber, low slate; frustrat
   "analysis_source": "ai",
   "status": "linked",
   "incident_id": 3,
-  "created_at": "2026-11-10T06:42:10Z"
+  "created_at": "2026-11-10T06:42:10Z",
+  "assigned_team": null,
+  "resolution_note": null,
+  "resolved_at": null
 }
 ```
 `incident_id` is null for one-off complaints. `category/sentiment/urgency` are always present (a safe default is used if AI fails; `analysis_source` is then `fallback`; show a small "basic analysis" tag).
@@ -131,6 +134,9 @@ Codes: 401 `unauthorized`, 403 `forbidden`, 404 `not_found`, 409 `invalid_transi
 | `PATCH /incidents/{id}` | yes | change priority/team, or `open` to `investigating` | `{ "priority"?, "assigned_team"?, "status"?: "investigating" }` | `IncidentDetail` |
 | `POST /incidents/{id}/resolve` | yes | resolve and update all linked complaints at once | `{ "resolution_note": "..." (3-500) }` | `IncidentDetail` |
 | `POST /incidents/{id}/reopen` | yes | `resolved` to `open` (also folds in new matching complaints) | `{ "note": "..." }` | `IncidentDetail` |
+| `POST /complaints/{id}/assign` | yes | assign a STANDALONE complaint (no incident) to a team | `{ "assigned_team": "Payments Ops" }` | `Complaint` |
+| `POST /complaints/{id}/resolve` | yes | resolve a standalone complaint (status `resolved`, kept in history) | `{ "resolution_note": "..." (3-500) }` | `Complaint` |
+| `POST /complaints/{id}/reopen` | yes | reopen a resolved standalone complaint (back to `new`) | `{ "note": "..." }` | `Complaint` |
 | `GET /dashboard/stats` | yes | dashboard data | | see below |
 | `GET /incidents/graph` | yes | correlation view (stretch) | | `{ "nodes": [ { "id": "i3", "type": "incident", "label": "Payments", "priority": "high" }, { "id": "c12", "type": "complaint", "label": "#12" } ], "edges": [ { "source": "c12", "target": "i3", "score": 0.82 } ] }` |
 
@@ -197,3 +203,7 @@ Backend seeds about 30 synthetic complaints and one staff user on startup. Staff
 - [ ] Loading, empty, error states everywhere; no console errors
 - [ ] Works on a phone-sized screen; `npm run build` passes; no secrets in git
 - [ ] Each component you committed can be explained in Q&A
+
+
+## Addendum: standalone complaints
+Complaints that belong to no incident (`incident_id` null, status `new`) are handled directly: assign to a team, resolve with a note, reopen. Grouped complaints return 409 and must be handled through their incident. The three new fields on `Complaint` (`assigned_team`, `resolution_note`, `resolved_at`) are null until used. Resolved standalone complaints are never deleted and never join new incidents.
