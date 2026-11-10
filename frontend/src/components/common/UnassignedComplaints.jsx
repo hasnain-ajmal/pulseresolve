@@ -7,10 +7,10 @@ import { CategoryBadge, SentimentBadge, PriorityBadge } from './Badge';
 import { LoadingState, ErrorState } from './States';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { TeamSelect } from './TeamSelect';
 import { useToast } from '../../context/ToastContext';
 
 const URGENCY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
-const TEAMS = ['Support Team', 'Payments Ops', 'Delivery Team', 'Engineering', 'Product Team'];
 
 /**
  * Standalone complaints: complaints that are NOT part of any incident.
@@ -56,7 +56,7 @@ export function UnassignedComplaints({
 
   const openDialog = (type, complaint) => {
     setDialog({ type, complaint });
-    setText(type === 'assign' ? complaint.assigned_team || TEAMS[0] : '');
+    setText(type === 'assign' ? complaint.assigned_team || '' : '');
   };
 
   const submitDialog = async (e) => {
@@ -210,18 +210,8 @@ export function UnassignedComplaints({
         <form onSubmit={submitDialog} className="space-y-4">
           {dialog?.type === 'assign' ? (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="team-input">Team</label>
-              <input
-                id="team-input"
-                list="team-options"
-                value={text}
-                maxLength={80}
-                onChange={(e) => setText(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-600"
-              />
-              <datalist id="team-options">
-                {TEAMS.map((t) => <option key={t} value={t} />)}
-              </datalist>
+              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="assign-team">Team</label>
+              <TeamSelect key={dialog.complaint.id} value={text} onChange={setText} id="assign-team" />
             </div>
           ) : (
             <div>

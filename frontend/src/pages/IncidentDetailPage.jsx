@@ -30,6 +30,7 @@ import { Card, CardHeader, CardBody } from '../components/common/Card';
 import { LoadingState, EmptyState, ErrorState } from '../components/common/States';
 import { useToast } from '../context/ToastContext';
 import { UnassignedComplaints } from '../components/common/UnassignedComplaints';
+import { TeamSelect } from '../components/common/TeamSelect';
 
 export function IncidentDetailPage() {
   const { id } = useParams();
@@ -787,13 +788,7 @@ export function IncidentDetailPage() {
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Assign to Team <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
-            <input
-              type="text"
-              value={approveTeam}
-              onChange={(e) => setApproveTeam(e.target.value)}
-              placeholder="e.g. Payments Ops or Core Platform"
-              className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600"
-            />
+            <TeamSelect value={approveTeam} onChange={setApproveTeam} optional id="approve-team" />
           </div>
 
           <div>
