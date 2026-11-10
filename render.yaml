@@ -1,0 +1,27 @@
+# Render Blueprint for the backend API (free plan). The frontend is deployed separately on Vercel.
+services:
+  - type: web
+    name: pulseresolve-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TRUST_PROXY
+        value: "true"
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: SEED_ADMIN_PASSWORD
+        sync: false   # test account password, set in the Render dashboard
+      - key: SEED_AGENT_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false   # secret, set in the Render dashboard only (comma-separate several keys to share quota)
+      - key: CORS_ORIGINS
+        sync: false   # the Vercel frontend URL

@@ -23,14 +23,18 @@ Repo: https://github.com/hasnain-ajmal/pulseresolve (fork of the organizers' tem
 [x] done and tested, [~] written, not yet verified, [ ] not started
 
 ## Backend checklist
-- [~] Scaffold, models, schemas, security, errors, routers, services written (10:50)
-- [~] Tests written (api, grouping, incidents, ai). First run pending (dependency install was slow)
-- [ ] Tune thresholds so grouping tests pass in fallback and AI mode
-- [ ] Real Gemini smoke test with the key in `backend/.env`
-- [ ] Eval set `backend/data/eval_set.json` and `scripts/eval_grouping.py` (precision and recall)
-- [ ] `requirements.txt`, README, docs/testing.md, ai-usage-log, judge-checks test names
-- [ ] Commit and push to GitHub (small commits)
-- [ ] Deploy backend (Render) and frontend (Vercel), live URL in README, test accounts in README
+- [x] Backend code (config, db, models, schemas, security, errors, routers, services) and seed data
+- [x] 50 tests pass (`cd backend && python -m pytest`; use anaconda python, the venv install was too slow)
+- [x] Offline grouping eval on 43 labelled complaints: precision 0.949, recall 1.0, 0 near-miss merges (analyser tuned on this set, say so in docs/testing.md)
+- [x] Gemini smoke test: key works; free tier is tiny (gemini-2.5-flash allows 20 generate requests/day). Fixed by rotating models (`GEMINI_MODEL` list) and keys (`GEMINI_API_KEY` comma list) and remembering exhausted combos. Gemini eval run: precision 1.0, recall 0.93 but part of that run fell back after quota loss
+- [x] Pushed to GitHub (commits e1926e5 and earlier)
+- [x] render.yaml and README written
+- [ ] Deploy backend on Render (user must log in and paste GEMINI_API_KEY into Render env; never in git)
+- [ ] Frontend (Sohail) integration against the live API, deploy on Vercel, set CORS_ORIGINS on Render
+- [ ] docs/testing.md, docs/ai-usage-log.md, judge-checks test names, README live URL
+- [ ] Final secret scan, SUBMISSION.md, final commit hash before 3:00 PM
+
+Gotcha: in this environment, double backslashes typed into shell commands become single ones (regex `\\b` turned into a backspace char). Edit files with the Edit/Write tools, not shell python, when regexes are involved.
 - [ ] Final: secret scan, SUBMISSION.md, final commit hash
 
 ## Frontend (Sohail)
