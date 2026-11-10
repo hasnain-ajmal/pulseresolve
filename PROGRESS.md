@@ -29,9 +29,9 @@ Repo: https://github.com/hasnain-ajmal/pulseresolve (fork of the organizers' tem
 - [x] Gemini smoke test: key works; free tier is tiny (gemini-2.5-flash allows 20 generate requests/day). Fixed by rotating models (`GEMINI_MODEL` list) and keys (`GEMINI_API_KEY` comma list) and remembering exhausted combos. Gemini eval run: precision 1.0, recall 0.93 but part of that run fell back after quota loss
 - [x] Pushed to GitHub (commits e1926e5 and earlier)
 - [x] render.yaml and README written
-- [ ] Deploy backend on Render (user must log in and paste GEMINI_API_KEY into Render env; never in git)
+- [x] Backend LIVE on Render: https://pulseresolve-api.onrender.com (blueprint render.yaml; service srv-dbpc3kgn74is73dhigq0; GEMINI_API_KEY set in Render env by Hasnain). Live smoke test passed: login, seeded 16 complaints/3 incidents, AI analysis, new incident formed from 3 live complaints (~4 s per submit). CORS_ORIGINS is still http://localhost:5173: update it on Render to the Vercel URL
 - [ ] Frontend (Sohail) integration against the live API, deploy on Vercel, set CORS_ORIGINS on Render
-- [ ] docs/testing.md, docs/ai-usage-log.md, judge-checks test names, README live URL
+- [x] docs/testing.md, docs/ai-usage-log.md written (update end-to-end results and final times at the end); [ ] frontend URL in README
 - [ ] Final secret scan, SUBMISSION.md, final commit hash before 3:00 PM
 
 Gotcha: in this environment, double backslashes typed into shell commands become single ones (regex `\\b` turned into a backspace char). Edit files with the Edit/Write tools, not shell python, when regexes are involved.

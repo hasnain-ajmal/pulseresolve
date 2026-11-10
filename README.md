@@ -12,7 +12,8 @@ Support teams in small and mid-size companies (e-commerce, delivery, fintech) tr
 
 ## Live deployment
 
-- **URL:** _filled in at deployment_ (frontend on Vercel, API on Render)
+- **API (live):** https://pulseresolve-api.onrender.com (docs at `/docs`, health at `/api/health`)
+- **Frontend URL:** _added when the Vercel deploy is done_
 - **Platform:** Vercel (React) + Render free plan (FastAPI). The free API sleeps when idle, so the first request can take 30 to 60 seconds.
 
 ## Judge quick start (under 5 minutes)
