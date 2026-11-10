@@ -1,0 +1,217 @@
+[
+ {
+  "customer_name": "Eval Customer 1",
+  "text": "Money was deducted from my account but the order was never created.",
+  "group": "pay_order"
+ },
+ {
+  "customer_name": "Eval Customer 2",
+  "text": "Checkout page keeps failing, and now I see a charge from your store on my bank statement.",
+  "group": "pay_order"
+ },
+ {
+  "customer_name": "Eval Customer 3",
+  "text": "Payment shows successful but I got no confirmation email and my order is stuck pending.",
+  "group": "pay_order"
+ },
+ {
+  "customer_name": "Eval Customer 4",
+  "text": "paisay kat gaye hain lekin order show nahi ho raha, kya masla hai?",
+  "group": "pay_order"
+ },
+ {
+  "customer_name": "Eval Customer 5",
+  "text": "I paid through JazzCash, the amount was debited, still no order number.",
+  "group": "pay_order"
+ },
+ {
+  "customer_name": "Eval Customer 6",
+  "text": "ادائیگی ہو گئی مگر آرڈر نہیں بنا، پیسے کٹ گئے ہیں",
+  "group": "pay_order"
+ },
+ {
+  "customer_name": "Eval Customer 7",
+  "text": "I am not getting the OTP when I try to log in.",
+  "group": "otp_missing"
+ },
+ {
+  "customer_name": "Eval Customer 8",
+  "text": "OTP sms nahi aa raha, login nahi ho raha.",
+  "group": "otp_missing"
+ },
+ {
+  "customer_name": "Eval Customer 9",
+  "text": "Verification code never arrives on my phone, cannot sign in.",
+  "group": "otp_missing"
+ },
+ {
+  "customer_name": "Eval Customer 10",
+  "text": "Waited 20 minutes for the login code, nothing received.",
+  "group": "otp_missing"
+ },
+ {
+  "customer_name": "Eval Customer 11",
+  "text": "لاگ ان کے لیے او ٹی پی نہیں آ رہا ہے",
+  "group": "otp_missing"
+ },
+ {
+  "customer_name": "Eval Customer 12",
+  "text": "My parcel is 6 days late and tracking has not changed.",
+  "group": "late_delivery"
+ },
+ {
+  "customer_name": "Eval Customer 13",
+  "text": "Delivery delayed again, the rider is not picking up my calls.",
+  "group": "late_delivery"
+ },
+ {
+  "customer_name": "Eval Customer 14",
+  "text": "Order not delivered yet, it was supposed to arrive last Monday.",
+  "group": "late_delivery"
+ },
+ {
+  "customer_name": "Eval Customer 15",
+  "text": "parcel abhi tak nahi pohcha, 5 din ho gaye hain",
+  "group": "late_delivery"
+ },
+ {
+  "customer_name": "Eval Customer 16",
+  "text": "Courier says tomorrow every day, my package still has not arrived.",
+  "group": "late_delivery"
+ },
+ {
+  "customer_name": "Eval Customer 17",
+  "text": "The app became very slow after the latest update.",
+  "group": "slow_after_update"
+ },
+ {
+  "customer_name": "Eval Customer 18",
+  "text": "Since the new version, pages take forever to load.",
+  "group": "slow_after_update"
+ },
+ {
+  "customer_name": "Eval Customer 19",
+  "text": "App is laggy and screens keep loading after I updated it.",
+  "group": "slow_after_update"
+ },
+ {
+  "customer_name": "Eval Customer 20",
+  "text": "update ke baad app bohat sust ho gayi hai",
+  "group": "slow_after_update"
+ },
+ {
+  "customer_name": "Eval Customer 21",
+  "text": "I was charged twice for my monthly subscription.",
+  "group": "double_charge"
+ },
+ {
+  "customer_name": "Eval Customer 22",
+  "text": "Two payments of the same amount were taken for one subscription.",
+  "group": "double_charge"
+ },
+ {
+  "customer_name": "Eval Customer 23",
+  "text": "My card was billed double this month for the same plan.",
+  "group": "double_charge"
+ },
+ {
+  "customer_name": "Eval Customer 24",
+  "text": "subscription ke do baar paise kat gaye hain is mahine",
+  "group": "double_charge"
+ },
+ {
+  "customer_name": "Eval Customer 25",
+  "text": "My card gets declined at checkout although I have balance.",
+  "group": "card_declined"
+ },
+ {
+  "customer_name": "Eval Customer 26",
+  "text": "Checkout rejects my debit card every time with a declined message.",
+  "group": "card_declined"
+ },
+ {
+  "customer_name": "Eval Customer 27",
+  "text": "Card not accepted when paying, the bank says no attempt reached them.",
+  "group": "card_declined"
+ },
+ {
+  "customer_name": "Eval Customer 28",
+  "text": "Password reset email never arrives in my inbox.",
+  "group": "password_reset"
+ },
+ {
+  "customer_name": "Eval Customer 29",
+  "text": "I requested a password reset link three times, no email came.",
+  "group": "password_reset"
+ },
+ {
+  "customer_name": "Eval Customer 30",
+  "text": "Reset password mail nahi aa rahi, account locked hai.",
+  "group": "password_reset"
+ },
+ {
+  "customer_name": "Eval Customer 31",
+  "text": "I received the wrong item, I ordered a blue shirt and got a black one.",
+  "group": "wrong_item"
+ },
+ {
+  "customer_name": "Eval Customer 32",
+  "text": "Wrong product delivered, the box had someone else's order.",
+  "group": "wrong_item"
+ },
+ {
+  "customer_name": "Eval Customer 33",
+  "text": "Galat item aa gaya hai, mera order alag tha.",
+  "group": "wrong_item"
+ },
+ {
+  "customer_name": "Eval Customer 34",
+  "text": "Please add a dark mode option to the app.",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 35",
+  "text": "I want to change the email address on my profile.",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 36",
+  "text": "Great service, thank you for the quick refund last week!",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 37",
+  "text": "The invoice shows the wrong company name.",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 38",
+  "text": "Can you add Urdu language support in the app?",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 39",
+  "text": "What are your customer support hours on Sunday?",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 40",
+  "text": "The rider was very rude to me yesterday.",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 41",
+  "text": "My package box was damaged but the item inside is fine.",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 42",
+  "text": "Promo code SAVE10 is not working on my cart.",
+  "group": null
+ },
+ {
+  "customer_name": "Eval Customer 43",
+  "text": "Meri profile picture upload nahi ho rahi.",
+  "group": null
+ }
+]

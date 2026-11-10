@@ -1,0 +1,18 @@
+[
+  {"customer_name": "Ayesha Khan", "text": "Payment deducted from my card but my order was not created."},
+  {"customer_name": "Bilal Ahmed", "text": "Please add a dark mode option to the app, it hurts my eyes at night."},
+  {"customer_name": "Sana Malik", "text": "Checkout keeps failing and then my bank says the money was charged."},
+  {"customer_name": "Usman Tariq", "text": "I am not receiving the OTP code to log in since this morning."},
+  {"customer_name": "Hira Noor", "text": "Payment successful but I never got a confirmation and the order is stuck on pending."},
+  {"customer_name": "Zain Ali", "text": "My parcel was supposed to arrive 5 days ago and the tracking has not updated."},
+  {"customer_name": "Maryam Shah", "text": "Great service, thank you for the quick refund last week!"},
+  {"customer_name": "Kamran Raza", "text": "OTP sms nahi aa raha, login nahi ho raha kal se."},
+  {"customer_name": "Farah Iqbal", "text": "paisay kat gaye lekin order nahi bana, please check kijiye."},
+  {"customer_name": "Danish Hussain", "text": "Delivery is very late and the rider is not responding to my calls."},
+  {"customer_name": "Noman Saeed", "text": "I want to change the email address on my profile but the page does not save it."},
+  {"customer_name": "Rabia Aslam", "text": "Verification code never arrives, I cannot sign in to my account."},
+  {"customer_name": "Imran Butt", "text": "Courier delayed again, my order is still not delivered after a week."},
+  {"customer_name": "Sidra Yousaf", "text": "Card declined at checkout even though I have enough balance."},
+  {"customer_name": "Hamza Qureshi", "text": "The invoice shows the wrong company name, please correct it."},
+  {"customer_name": "Laiba Farooq", "text": "I was charged twice for the same subscription this month."}
+]
