@@ -13,12 +13,12 @@ Support teams in small and mid-size companies (e-commerce, delivery, fintech) tr
 ## Live deployment
 
 - **API (live):** https://pulseresolve-api.onrender.com (docs at `/docs`, health at `/api/health`)
-- **Frontend URL:** _added when the Vercel deploy is done_
+- **App (frontend, live):** https://pulseresolve.vercel.app (public complaint form at `/submit`, staff login at `/login`)
 - **Platform:** Vercel (React) + Render free plan (FastAPI). The free API sleeps when idle, so the first request can take 30 to 60 seconds.
 
 ## Judge quick start (under 5 minutes)
 
-1. Open the live URL. The public page `/submit` needs no login: send a few related complaints, for example "Payment deducted but my order was not created", "Checkout keeps failing and my bank shows a charge", "Paid but no confirmation, order stuck on pending".
+1. Open https://pulseresolve.vercel.app. If the API was idle it needs up to a minute to wake up (the page waits for it). The public page `/submit` needs no login: send a few related complaints, for example "Payment deducted but my order was not created", "Checkout keeps failing and my bank shows a charge", "Paid but no confirmation, order stuck on pending".
 2. Log in as staff (test account below). Open **Incidents**: a *suggested* incident appears once three related complaints exist. Open it to see why the complaints were grouped, the AI summary, cited root-cause hypotheses and linked complaints.
 3. Click **Approve**, then **Mark investigating**, then **Resolve**. Every linked complaint changes to resolved at once. Submit one more matching complaint to see it flagged as a possible recurrence, then **Reopen**.
 
