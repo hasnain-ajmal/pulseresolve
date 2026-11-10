@@ -44,6 +44,7 @@ class Complaint(Base):
     due_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     deleted_reason: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    customer_message: Mapped[str | None] = mapped_column(String(500), nullable=True)  # shown to the customer on the status page
 
 
 class ComplaintEvent(Base):

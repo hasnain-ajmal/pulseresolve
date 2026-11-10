@@ -16,9 +16,15 @@ export function PublicLayout({ children }) {
               <span className="text-[11px] text-slate-500 block leading-none">Customer Resolution Portal</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <a 
-              href="/login" 
+          <div className="flex items-center gap-4">
+            <a
+              href="/track"
+              className="text-xs font-semibold text-purple-700 hover:text-purple-900 transition-colors"
+            >
+              Check complaint status
+            </a>
+            <a
+              href="/login"
               className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
             >
               Staff Portal &rarr;

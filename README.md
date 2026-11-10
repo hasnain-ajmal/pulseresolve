@@ -20,7 +20,7 @@ Support teams in small and mid-size companies (e-commerce, delivery, fintech) tr
 
 1. Open https://pulseresolve.vercel.app. If the API was idle it needs up to a minute to wake up (the page waits for it). The public page `/submit` needs no login: send a few related complaints, for example "Payment deducted but my order was not created", "Checkout keeps failing and my bank shows a charge", "Paid but no confirmation, order stuck on pending".
 2. Log in as staff (test account below). Open **Incidents**: a *suggested* incident appears once three related complaints exist. Open it to see why the complaints were grouped, the AI summary, cited root-cause hypotheses and linked complaints.
-3. Click **Approve**, then **Mark investigating**, then **Resolve**. Every linked complaint changes to resolved at once. Submit one more matching complaint to see it flagged as a possible recurrence, then **Reopen**.
+3. After submitting, note the **complaint ID** shown to the customer. Click **Approve**, then **Mark investigating**, then **Resolve** (write the message the customer will see). Then open https://pulseresolve.vercel.app/track, enter the ID and see the status and the team's message. Every linked complaint changes to resolved at once. Submit one more matching complaint to see it flagged as a possible recurrence, then **Reopen**.
 
 ## Test accounts
 

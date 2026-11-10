@@ -78,7 +78,7 @@ def patch(iid: int, body: PatchIn, db: Session = Depends(get_db), user: User = D
 @router.post("/{iid}/resolve", response_model=IncidentDetail)
 def resolve(iid: int, body: ResolveIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     inc = _get(db, iid)
-    svc.resolve(db, inc, user.username, body.resolution_note)
+    svc.resolve(db, inc, user.username, body.resolution_note, body.customer_message)
     return svc.to_detail(db, inc)
 
 

@@ -246,8 +246,13 @@ export const api = {
     return request('/alerts');
   },
 
-  async resolveComplaint(id, resolution_note) {
-    return request(`/complaints/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution_note }) });
+  async resolveComplaint(id, resolution_note, customer_message) {
+    return request(`/complaints/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution_note, customer_message }) });
+  },
+
+  // Public (no login): the customer enters the complaint ID they were given.
+  async trackComplaint(id) {
+    return request(`/track/${encodeURIComponent(id)}`);
   },
 
   // Safe delete (lead only): hidden everywhere, kept in the database with who and why, restorable.
@@ -361,11 +366,11 @@ export const api = {
     }
   },
 
-  async resolveIncident(id, { resolution_note }) {
+  async resolveIncident(id, { resolution_note, customer_message }) {
     if (useLiveApi) {
       return request(`/incidents/${id}/resolve`, {
         method: 'POST',
-        body: JSON.stringify({ resolution_note })
+        body: JSON.stringify({ resolution_note, customer_message })
       });
     } else {
       await new Promise(r => setTimeout(r, 400));

@@ -212,12 +212,25 @@ export function SubmitComplaintPage() {
             </div>
 
             <div className="text-center sm:text-left">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-mono font-medium mb-3">
-                Ticket Reference: #{submittedData.id}
-              </div>
               <h2 className="text-2xl font-bold tracking-tight text-slate-900">
                 Your complaint has been received.
               </h2>
+              <div className="mt-4 p-4 rounded-xl bg-purple-50 border border-purple-200">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-purple-800">Your complaint ID. Please save it.</div>
+                <div className="mt-1 flex items-center gap-3 justify-center sm:justify-start">
+                  <span className="text-4xl font-bold font-mono text-purple-900" data-testid="complaint-id">#{submittedData.id}</span>
+                  <button
+                    type="button"
+                    onClick={() => { try { navigator.clipboard.writeText(String(submittedData.id)); } catch { /* clipboard may be blocked */ } }}
+                    className="text-xs font-medium text-purple-700 border border-purple-300 rounded-lg px-2.5 py-1 hover:bg-purple-100"
+                  >
+                    Copy ID
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-purple-900/80">
+                  Use this ID on the <a href={`/track?id=${submittedData.id}`} className="font-semibold underline">Check status</a> page to see when your complaint is resolved and read our team's message.
+                </p>
+              </div>
               <p className="mt-2 text-sm text-slate-500 leading-relaxed">
                 Thank you for reporting this issue. Our engineering and support operations team has received your ticket and begun verification.
               </p>

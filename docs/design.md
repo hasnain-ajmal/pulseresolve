@@ -67,6 +67,7 @@ Request and response shapes are in `docs/frontend-spec.md` (the contract shared 
 | PATCH | /api/incidents/{id} | Priority, team, mark investigating | Yes |
 | POST | /api/complaints/{id}/assign, /resolve, /reopen | Handle a standalone complaint (not in any incident) | Yes |
 | POST | /api/complaints/{id}/delete, /restore and /api/incidents/{id}/delete, /restore | Safe (soft) delete and restore, lead only | Yes (lead) |
+| GET | /api/track/{id} | Public complaint status and the team's closing message (minimal fields, rate limited) | No (rate limited) |
 | GET | /api/alerts | Overdue and due-within-1-hour work for the admin bell and banner | Yes |
 | GET | /api/dashboard/stats | Dashboard data | Yes |
 | GET | /api/incidents/graph | Correlation view (stretch) | Yes |

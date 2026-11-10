@@ -128,6 +128,7 @@ def resolve_complaint(cid: int, body: ResolveComplaintIn, db: Session = Depends(
         raise ApiError(409, "invalid_transition", f"Cannot resolve a complaint that is {c.status}.")
     try:
         c.status, c.resolution_note, c.resolved_at = "resolved", body.resolution_note, utcnow()
+        c.customer_message = body.customer_message or incidents_svc.DEFAULT_CUSTOMER_MESSAGE
         db.add(ComplaintEvent(complaint_id=c.id, action="resolved", actor=user.username, note=body.resolution_note))
         db.commit()
     except Exception:
@@ -174,7 +175,7 @@ def reopen_complaint(cid: int, body: ReopenComplaintIn | None = None, db: Sessio
     _standalone(c, "reopen")
     if c.status != "resolved":
         raise ApiError(409, "invalid_transition", f"Cannot reopen a complaint that is {c.status}.")
-    c.status, c.resolved_at, c.resolution_note = "new", None, None
+    c.status, c.resolved_at, c.resolution_note, c.customer_message = "new", None, None, None
     db.add(ComplaintEvent(complaint_id=c.id, action="reopened", actor=user.username, note=(body.note if body else "Reopened")))
     db.commit()
     return c

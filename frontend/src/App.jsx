@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import { StaffLayout } from './components/layout/StaffLayout';
 import { LoginPage } from './pages/LoginPage';
 import { SubmitComplaintPage } from './pages/SubmitComplaintPage';
+import { TrackComplaintPage } from './pages/TrackComplaintPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { IncidentDetailPage } from './pages/IncidentDetailPage';
@@ -38,6 +39,7 @@ export function App() {
           <Routes>
             {/* Public Customer Facing Route (No Auth, No Staff Nav) */}
             <Route path="/submit" element={<SubmitComplaintPage />} />
+            <Route path="/track" element={<TrackComplaintPage />} />
 
             {/* Staff Auth Route */}
             <Route path="/login" element={<LoginPage />} />

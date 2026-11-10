@@ -13,6 +13,7 @@ from app.services import ai, fallback
 
 log = logging.getLogger("pulseresolve.incidents")
 MEMBER_STATUSES = ("linked", "resolved")
+DEFAULT_CUSTOMER_MESSAGE = "Your issue has been resolved. Thank you for your patience."
 _URG = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 _PRIO = ["low", "medium", "high", "critical"]
 
@@ -204,14 +205,17 @@ def update(db: Session, inc: Incident, actor: str, priority: str | None, team: s
     db.commit()
 
 
-def resolve(db: Session, inc: Incident, actor: str, note: str) -> None:
+def resolve(db: Session, inc: Incident, actor: str, note: str, customer_message: str | None = None) -> None:
     """Atomic: the incident and every linked complaint change together, or nothing changes."""
     _need(inc, ("open", "investigating"), "resolve")
     try:
         frm = inc.status
         linked = db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status == "linked").all()
+        stamp = utcnow()
         for c in linked:
             c.status = "resolved"
+            c.customer_message = customer_message or DEFAULT_CUSTOMER_MESSAGE
+            c.resolved_at = stamp
         inc.status = "resolved"
         inc.resolved_at = inc.updated_at = utcnow()
         _event(db, inc, frm, "resolved", actor, f"{note} ({len(linked)} complaints updated)")
@@ -227,6 +231,7 @@ def reopen(db: Session, inc: Incident, actor: str, note: str) -> None:
     try:
         for c in db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status == "resolved").all():
             c.status = "linked"
+            c.customer_message, c.resolved_at = None, None
         for c in db.query(Complaint).filter(Complaint.incident_id == inc.id, Complaint.status == "possible_recurrence").all():
             c.status = "linked"
             db.add(MembershipLog(complaint_id=c.id, incident_id=inc.id, action="folded_in", actor=actor))

@@ -63,6 +63,11 @@ export function IncidentDetailPage() {
 
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
   const [resolutionNote, setResolutionNote] = useState('');
+  const [customerMessage, setCustomerMessage] = useState('');
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editTeam, setEditTeam] = useState('');
+  const [editPriority, setEditPriority] = useState('');
+  const [editDue, setEditDue] = useState('');
 
   const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
   const [reopenNote, setReopenNote] = useState('');
@@ -184,10 +189,15 @@ export function IncidentDetailPage() {
       toastError("Please provide a resolution note (minimum 3 characters).");
       return;
     }
+    if (customerMessage.trim().length < 3) {
+      toastError("Please write a short message for the customers (minimum 3 characters).");
+      return;
+    }
     setActionLoading(true);
     try {
       const updated = await api.resolveIncident(incident.id, {
-        resolution_note: resolutionNote.trim()
+        resolution_note: resolutionNote.trim(),
+        customer_message: customerMessage.trim()
       });
       setIncident(updated);
       setIsResolveModalOpen(false);
@@ -380,6 +390,22 @@ export function IncidentDetailPage() {
                   Approve
                 </Button>
               </>
+            )}
+
+            {(isOpen || isInvestigating) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setEditTeam(incident.assigned_team || '');
+                  setEditPriority(incident.priority || '');
+                  setEditDue('');
+                  setIsEditOpen(true);
+                }}
+                icon={Search}
+              >
+                Edit team &amp; deadline
+              </Button>
             )}
 
             {isOpen && (
@@ -944,11 +970,31 @@ export function IncidentDetailPage() {
             </span>
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="customer-message">
+              Message to the customers <span className="text-rose-500">* (3-500 characters)</span>
+            </label>
+            <textarea
+              id="customer-message"
+              rows={3}
+              value={customerMessage}
+              onChange={(e) => setCustomerMessage(e.target.value)}
+              placeholder="e.g. The payment problem is fixed. Any amount charged without an order will be refunded within 3 working days."
+              required
+              minLength={3}
+              maxLength={500}
+              className="w-full text-xs border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-600"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Every linked customer sees this on the public "Check status" page. Keep it clear and do not include personal or internal details.
+            </p>
+          </div>
+
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
             <Button variant="secondary" size="sm" onClick={() => setIsResolveModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="brand" size="sm" loading={actionLoading} disabled={resolutionNote.trim().length < 3}>
+            <Button type="submit" variant="brand" size="sm" loading={actionLoading} disabled={resolutionNote.trim().length < 3 || customerMessage.trim().length < 3}>
               Confirm Resolution
             </Button>
           </div>
@@ -983,6 +1029,63 @@ export function IncidentDetailPage() {
             <Button type="submit" variant="danger" size="sm" loading={actionLoading}>
               Reopen Incident
             </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Edit team & deadline"
+        description="Change who is responsible, the priority, or give the team a new deadline starting now."
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setActionLoading(true);
+            try {
+              const updated = await api.updateIncident(incident.id, {
+                assigned_team: editTeam.trim(),
+                priority: editPriority || undefined,
+                due_in_minutes: editDue ? Number(editDue) : undefined,
+              });
+              setIncident(updated);
+              setIsEditOpen(false);
+              success('Assignment updated.');
+            } catch (err) {
+              toastError(err.message || 'Failed to update the assignment.');
+            } finally {
+              setActionLoading(false);
+            }
+          }}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="edit-team">Assigned team</label>
+            <TeamSelect value={editTeam} onChange={setEditTeam} optional id="edit-team" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="edit-priority">Priority</label>
+            <select
+              id="edit-priority"
+              value={editPriority}
+              onChange={(e) => setEditPriority(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-600"
+            >
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="edit-due">Deadline</label>
+            <DeadlineSelect value={editDue} onChange={setEditDue} id="edit-due" />
+            <p className="text-[11px] text-slate-500 mt-1">Leave on the default to keep the current deadline (it is recalculated if you change the priority).</p>
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="brand" size="sm" loading={actionLoading}>Save</Button>
           </div>
         </form>
       </Modal>

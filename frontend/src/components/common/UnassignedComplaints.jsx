@@ -36,6 +36,7 @@ export function UnassignedComplaints({
   const [dialog, setDialog] = useState(null); // { type: 'assign' | 'resolve', complaint }
   const [text, setText] = useState('');
   const [due, setDue] = useState('');
+  const [msg, setMsg] = useState(''); // message the customer will see when they check their complaint ID
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -67,6 +68,7 @@ export function UnassignedComplaints({
     setDialog({ type, complaint });
     setText(type === 'assign' ? complaint.assigned_team || '' : '');
     setDue('');
+    setMsg('');
   };
 
   const submitDialog = async (e) => {
@@ -81,7 +83,7 @@ export function UnassignedComplaints({
         await api.deleteComplaint(dialog.complaint.id, text.trim());
         success(`Complaint #${dialog.complaint.id} deleted. It is kept in the records and can be restored.`);
       } else {
-        await api.resolveComplaint(dialog.complaint.id, text.trim());
+        await api.resolveComplaint(dialog.complaint.id, text.trim(), msg.trim());
         success(`Complaint #${dialog.complaint.id} marked resolved`);
       }
       setDialog(null);
@@ -290,9 +292,28 @@ export function UnassignedComplaints({
                 value={text}
                 maxLength={500}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={dialog?.type === 'delete' ? 'e.g. Positive review, nothing to act on' : 'e.g. Replied to the customer and added the request to the roadmap'}
+                placeholder={dialog?.type === 'delete' ? 'e.g. Positive review, nothing to act on' : 'e.g. Added the request to the roadmap'}
                 className="w-full text-xs border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-600"
               />
+              {dialog?.type === 'resolve' && (
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="customer-msg">
+                    Message to the customer <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    id="customer-msg"
+                    rows={3}
+                    value={msg}
+                    maxLength={500}
+                    onChange={(e) => setMsg(e.target.value)}
+                    placeholder="e.g. Thank you for the suggestion, we have added dark mode to our plan for next month."
+                    className="w-full text-xs border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-600"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    The customer sees this on the public "Check status" page. No personal or internal details, please.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -302,7 +323,11 @@ export function UnassignedComplaints({
               variant="brand"
               size="sm"
               loading={busy}
-              disabled={dialog?.type === 'assign' ? !text.trim() : text.trim().length < 3}
+              disabled={
+                dialog?.type === 'assign' ? !text.trim()
+                  : dialog?.type === 'resolve' ? text.trim().length < 3 || msg.trim().length < 3
+                  : text.trim().length < 3
+              }
             >
               {dialog?.type === 'assign' ? 'Assign' : dialog?.type === 'delete' ? 'Delete complaint' : 'Mark resolved'}
             </Button>

@@ -66,6 +66,7 @@ class ComplaintOut(BaseModel):
     due_at: UTCDatetime | None = None
     deleted_at: UTCDatetime | None = None
     deleted_reason: str | None = None
+    customer_message: str | None = None
 
 
 class DeleteIn(BaseModel):
@@ -84,6 +85,7 @@ class AssignComplaintIn(BaseModel):
 
 class ResolveComplaintIn(BaseModel):
     resolution_note: str = Field(min_length=3, max_length=500)
+    customer_message: str | None = Field(default=None, min_length=3, max_length=500)
 
 
 class ReopenComplaintIn(BaseModel):
@@ -179,6 +181,7 @@ class PatchIn(BaseModel):
 
 class ResolveIn(BaseModel):
     resolution_note: str = Field(min_length=3, max_length=500)
+    customer_message: str | None = Field(default=None, min_length=3, max_length=500)
 
 
 class ReopenIn(BaseModel):
