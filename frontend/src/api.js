@@ -98,6 +98,14 @@ async function request(endpoint, options = {}) {
       headers
     });
 
+    if (response.status === 401 && endpoint === '/auth/login') {
+      // Wrong credentials, not an expired session: show the server's real message.
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body.message || 'Invalid username or password.');
+      err.code = 'unauthorized';
+      throw err;
+    }
+
     if (response.status === 401) {
       clearAuth();
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {

@@ -10,8 +10,8 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const expired = searchParams.get('expired') === 'true';
 
-  const [username, setUsername] = useState('sohail');
-  const [password, setPassword] = useState('password123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(expired ? 'Your session has expired. Please sign in again.' : null);
 
@@ -72,7 +72,7 @@ export function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. sohail or hasnain"
+                  placeholder="e.g. lead"
                   required
                   className="block w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-slate-50/50 hover:bg-white transition-colors"
                 />

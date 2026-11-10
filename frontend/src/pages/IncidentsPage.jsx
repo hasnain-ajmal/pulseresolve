@@ -17,6 +17,7 @@ import { formatDate, formatRelativeTime } from '../utils/formatters';
 import { StatusBadge, PriorityBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { LoadingState, EmptyState, ErrorState } from '../components/common/States';
+import { UnassignedComplaints } from '../components/common/UnassignedComplaints';
 
 export function IncidentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -306,6 +307,9 @@ export function IncidentsPage() {
           </div>
         </div>
       )}
+
+      {/* Whole picture: standalone complaints that belong to no incident */}
+      <UnassignedComplaints />
     </div>
   );
 }

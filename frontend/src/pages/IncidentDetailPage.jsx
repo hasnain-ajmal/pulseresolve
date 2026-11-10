@@ -29,6 +29,7 @@ import { Modal } from '../components/common/Modal';
 import { Card, CardHeader, CardBody } from '../components/common/Card';
 import { LoadingState, EmptyState, ErrorState } from '../components/common/States';
 import { useToast } from '../context/ToastContext';
+import { UnassignedComplaints } from '../components/common/UnassignedComplaints';
 
 export function IncidentDetailPage() {
   const { id } = useParams();
@@ -936,6 +937,12 @@ export function IncidentDetailPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Context for triage: complaints that are not part of any incident */}
+      <UnassignedComplaints
+        title="Other complaints not in any incident"
+        note="So you can see everything left to handle without leaving this page. Related ones may join an incident as more arrive."
+      />
     </div>
   );
 }
