@@ -67,6 +67,8 @@ class ComplaintOut(BaseModel):
     deleted_at: UTCDatetime | None = None
     deleted_reason: str | None = None
     customer_message: str | None = None
+    multi_issue: bool = False
+    problem_count: int = 1
 
 
 class DeleteIn(BaseModel):

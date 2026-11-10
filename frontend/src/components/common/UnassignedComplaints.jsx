@@ -168,7 +168,19 @@ export function UnassignedComplaints({
                     <Link to={`/complaints?q=${encodeURIComponent(c.text.slice(0, 30))}`} className="hover:text-purple-700">#{c.id}</Link>
                   </td>
                   <td className="py-3 px-4 text-slate-700 whitespace-nowrap">{c.customer_name}</td>
-                  <td className="py-3 px-4 text-slate-700" title={c.text}>{truncateText(c.text, 100)}</td>
+                  <td className="py-3 px-4 text-slate-700" title={c.text}>
+                    {truncateText(c.text, 100)}
+                    {c.multi_issue && (
+                      <div className="mt-1">
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold"
+                          title="This report describes several unrelated problems, so it is not grouped into any incident. Handle each problem, then resolve."
+                        >
+                          Multiple problems ({c.problem_count}), handle individually
+                        </span>
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3 px-4"><CategoryBadge category={c.category} /></td>
                   <td className="py-3 px-4"><SentimentBadge sentiment={c.sentiment} /></td>
                   <td className="py-3 px-4"><PriorityBadge priority={c.urgency} /></td>

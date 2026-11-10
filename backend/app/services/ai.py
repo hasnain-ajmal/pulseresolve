@@ -33,6 +33,12 @@ class AnalysisOut(BaseModel):
     symptoms: list[str] = Field(default_factory=list, max_length=6)
     affected_service: str = Field(max_length=60)
     language: str = Field(default="en", max_length=12)
+    problem_count: int = 1
+
+    @field_validator("problem_count")
+    @classmethod
+    def _pc(cls, v):
+        return min(max(int(v), 1), 5)
 
     @field_validator("category")
     @classmethod
@@ -265,6 +271,9 @@ def analyze_complaint(text: str) -> AnalysisOut:
         'Return JSON: {"category": one of ' + str(CATEGORIES) + ', "sentiment": one of ' + str(SENTIMENTS) + ', "urgency": one of '
         + str(URGENCIES) + ', "symptoms": up to 6 short lowercase phrases naming the concrete problems (e.g. "payment deducted", '
         '"order stuck pending"), "affected_service": short name like Payments, Delivery, Authentication, "language": "en", "roman-ur" or "ur"}. '
+        "Also return \"problem_count\": the number of clearly DIFFERENT problems the customer describes (1 to 5). "
+        "Use 2 or more ONLY when the problems have different causes, for example a payment that was deducted AND, separately, "
+        "an app that will not open. Several symptoms of one fault count as 1. "
         "The complaint may be English, Roman Urdu or Urdu script."
     )
     return _generate_json(system, _tag("new", text), AnalysisOut, 400)  # type: ignore[return-value]

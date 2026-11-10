@@ -126,6 +126,9 @@ def assign(db: Session, c: Complaint, actor: str = "system") -> str:
     """Run the grouping rule for one new complaint. Caller holds GROUP_LOCK and commits."""
     from app.services import incidents as inc_svc  # local import avoids a cycle
 
+    if c.multi_issue:  # several unrelated problems in one report: handled individually by staff, never put in an incident
+        return "multi_issue"
+
     blocked = _blocked(db, c.id)
     incidents = db.query(Incident).filter(Incident.status.in_(ACTIVE + ("resolved",)), Incident.deleted_at.is_(None)).all()
     members_by_inc: dict[int, list[Complaint]] = {}
@@ -134,7 +137,7 @@ def assign(db: Session, c: Complaint, actor: str = "system") -> str:
                                          Complaint.id != c.id, Complaint.deleted_at.is_(None)).all())
         members_by_inc[inc.id] = [m for m in ms if m.id not in blocked]
     pool = [p for p in db.query(Complaint).filter(Complaint.status == "new", Complaint.incident_id.is_(None), Complaint.id != c.id,
-                                                       Complaint.deleted_at.is_(None)).all()
+                                                       Complaint.deleted_at.is_(None), Complaint.multi_issue.is_(False)).all()
             if p.id not in blocked]
 
     flat = [m for ms in members_by_inc.values() for m in ms] + pool

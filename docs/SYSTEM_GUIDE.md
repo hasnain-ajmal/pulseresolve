@@ -39,6 +39,8 @@ Think of it like a hospital triage desk: patients arrive one by one, but the des
 
 Complaints that match nothing stay in the "Standalone complaints" list. Staff can **Assign** them to a team (with a deadline), **Resolve** them (with a message for the customer), reopen them, and the lead can delete them (for example a positive review).
 
+**Reports with several problems.** If one report describes several different problems (for example a deducted payment and, separately, an app that will not open), it keeps one ID and is **not put in any incident**. It shows in the standalone list with a "Multiple problems" tag, and staff deal with it individually and write one message to the customer when finished. This stops one mixed report from distorting a group.
+
 ## 5. Deadlines and alerts
 
 When work is assigned, a deadline starts. Default time depends on priority: critical 2 hours, high 8 hours, medium 24 hours, low 3 days (staff can pick 30 min, 1 h, 4 h or 24 h instead). If unresolved work is **overdue or due within 1 hour**, a **bell** shows a count in the top right of every staff page, plus a banner and a countdown chip. Resolving the work clears the alert.

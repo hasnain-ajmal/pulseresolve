@@ -42,6 +42,9 @@ Complaint text is wrapped as untrusted data, output must match a strict format, 
 **How accurate is it?**
 On our 43-complaint labelled set the offline engine scores precision 0.95 and recall 1.00. With Gemini the single partial run scored 1.00 / 0.93 but part of it ran on the fallback because of quota, so we do not claim it as a clean Gemini result. The rules were tuned on that same set, so unseen text may do worse. This is in `testing.md`.
 
+**What if one complaint describes several different problems?**
+The analysis counts the distinct problems. If there are two or more clearly unrelated ones (for example a deducted payment and, separately, an app that will not open), the complaint keeps one ID, is never put into any incident and is never used to form one, so it cannot distort a group. It appears in the standalone list with a "Multiple problems" tag and staff handle it individually, resolving it with one message for the customer. The detector is deliberately conservative (only specific problem types count), tested on the labelled and sample data with no false flags. Splitting such a report into linked sub-complaints is future work.
+
 ## C. Edge cases (judge checks and more)
 
 | Check | Answer |

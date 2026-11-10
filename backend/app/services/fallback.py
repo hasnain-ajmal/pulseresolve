@@ -41,6 +41,7 @@ SYMPTOM_PATTERNS: list[tuple[str, str]] = [
                       r"\d+ days?|days? (ago|late)|din ho|tracking (has )?(not|nahi)|supposed to arrive|abhi tak"),
     ("wrong item", r"wrong (item|product)|damaged|broken item|galat"),
     ("rude rider", r"rude|behav|misbehav"),
+    ("app not opening", r"not opening|won'?t open|doesn'?t open|does not open|will not open|not launch|nahi khul"),
     ("error message", r"error|exception|something went wrong"),
     ("cannot update profile", r"update (my )?(email|address|profile)|email change|profile"),
     ("no support reply", r"no (reply|response)|nobody (replied|answered)|support (not|nahi)"),
@@ -83,6 +84,23 @@ def extract_symptoms(text: str) -> list[str]:
     return found[:6]
 
 
+STRONG_PROBLEMS = {"payment deducted", "order not created", "card declined", "double charge", "otp not received",
+                   "password reset email missing", "app crash", "app not opening", "wrong item"}
+
+
+def count_problems(text: str) -> int:
+    """How many DISTINCT problems the customer describes (payment trouble, a declined card, an app that will not open...).
+    Counts fault families and specific symptoms; generic words (error, cannot log in, slow) never count on their own."""
+    # Conservative on purpose: only clear, specific problem types are counted. Weak signals (a late-delivery pattern that
+    # also matches "10 days", the word "profile", "no email") never make a report look like several problems.
+    labels = [l for l in extract_symptoms(text) if l in STRONG_PROBLEMS]
+    keys = set()
+    for label in labels:
+        fam = [f for f in FAMILIES if label in FAMILIES[f]]
+        keys.add(fam[0] if fam else label)
+    return max(1, len(keys))
+
+
 def analyze(text: str) -> dict:
     t = text.lower()
     scores = {c: _count(t, kws) for c, kws in CATEGORY_KEYWORDS.items()}
@@ -120,6 +138,7 @@ def analyze(text: str) -> dict:
         "symptoms": extract_symptoms(text),
         "affected_service": SERVICE_BY_CATEGORY[category],
         "language": detect_language(text),
+        "problem_count": count_problems(text),
     }
 
 
@@ -179,7 +198,7 @@ FAMILIES: dict[str, set[str]] = {
     "password reset": {"password reset email missing"},
     "delivery delay": {"late delivery"},
     "slowness": {"slow loading", "app is slow after update"},
-    "crashes": {"app crash", "error message"},
+    "crashes": {"app crash", "error message", "app not opening"},
 }
 
 

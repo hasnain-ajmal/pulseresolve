@@ -236,6 +236,13 @@ export function SubmitComplaintPage() {
               </p>
             </div>
 
+            {submittedData.multi_issue && (
+              <div className="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                <strong>Your report mentions several different problems.</strong> Our team will review it personally under this one
+                ID and update you here. For the fastest help, you can also send each problem as a separate complaint.
+              </div>
+            )}
+
             {/* Linked Known Issue Notice (spec requirement) */}
             {submittedData.incident_id && (
               <div className="mt-6 p-4 rounded-xl bg-purple-50/70 border border-purple-200 flex items-start gap-3">

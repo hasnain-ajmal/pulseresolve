@@ -45,6 +45,9 @@ class Complaint(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     deleted_reason: Mapped[str | None] = mapped_column(String(300), nullable=True)
     customer_message: Mapped[str | None] = mapped_column(String(500), nullable=True)  # shown to the customer on the status page
+    # A report that describes several unrelated problems is never grouped; staff handle it individually.
+    multi_issue: Mapped[bool] = mapped_column(Boolean, default=False)
+    problem_count: Mapped[int] = mapped_column(Integer, default=1)
 
 
 class ComplaintEvent(Base):

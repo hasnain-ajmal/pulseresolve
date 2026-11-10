@@ -20,10 +20,10 @@ python scripts/eval_grouping.py --ai     # needs GEMINI_API_KEY and free quota
 | Type | Total | Passed | Failed |
 |------|-------|--------|--------|
 | Unit | 2 | 2 | 0 |
-| Integration / API (HTTP client, database, fake Gemini) | 124 | 124 | 0 |
+| Integration / API (HTTP client, database, fake Gemini) | 139 | 139 | 0 |
 | End-to-end on the deployed system (`scripts/live_test.py`, real Gemini, 42 checks) | 42 | 40 | 2 (investigated and fixed, see D-07 and D-08) |
 
-Last full run: 126 passed (backend/tests).
+Last full run: 141 passed (backend/tests).
 
 ## Edge cases covered
 
@@ -53,6 +53,7 @@ Last full run: 126 passed (backend/tests).
 | EC-23 | Safe delete: standalone and finished incidents, restore, cascade, only lead may delete, grouped complaint refused, deleted items excluded from stats, alerts and grouping, record kept with audit event | As described | test_delete.py (8 tests) | Pass |
 | EC-24 | Customer tracking: received, in progress, resolved with message, default message, reopen clears it, incident message reaches every customer, 404 for unknown or deleted IDs, only minimal fields exposed, internal note never shown, rate limit | As described | test_track.py (7 tests) | Pass |
 | EC-25 | Edge-case and abuse pass: huge and negative IDs, bad pagination, deleted records, simultaneous clicks, hostile text, malformed bodies, token attacks, role escalation, CSV garbage | Clean 4xx errors, never a 500; exactly one winner on races; deleted items inert | test_edge_cases.py (47 cases) and the exploratory attack run on a real database file | Pass |
+| EC-26 | A report with several unrelated problems | One ID, never grouped, never a candidate, handled individually; single-problem texts are never flagged | test_multi_problem.py (15 cases) | Pass |
 | EC-20 | CSV: bad row, missing column, oversize file | Row errors reported, 422 for bad file | test_csv_import_handles_bad_rows | Pass |
 
 ## Measured metrics

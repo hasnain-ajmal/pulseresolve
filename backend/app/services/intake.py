@@ -40,7 +40,9 @@ def submit(db: Session, data: ComplaintCreate, actor: str = "system") -> Complai
     c = Complaint(customer_name=data.customer_name, customer_contact=data.customer_contact, text=data.text, text_hash=h,
                   category=analysis["category"], sentiment=analysis["sentiment"], urgency=analysis["urgency"],
                   symptoms=analysis.get("symptoms", []), affected_service=analysis["affected_service"],
-                  language=analysis.get("language", "en"), analysis_source=source, status="new")
+                  language=analysis.get("language", "en"), analysis_source=source, status="new",
+                  problem_count=int(analysis.get("problem_count", 1) or 1))
+    c.multi_issue = c.problem_count >= 2
     db.add(c)
     db.flush()
     if ai.available():
